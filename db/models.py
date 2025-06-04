@@ -28,6 +28,8 @@ class Account(Base):
     __tablename__ = 'accounts'
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     resource: Mapped[str]
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey('bot_user.id'))
+    user: Mapped['User'] = relationship('User', back_populates='accounts')
 
     def dump(self):
         return {'id': self.id, 'resource': self.resource}
