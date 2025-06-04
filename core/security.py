@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from core import conf
 from datetime import timedelta, datetime, timezone
-from app.api.schemas.user import UserInput
+from web.api.schemas.user import UserInput
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/token")
 secret_key = conf.SECRET_KEY

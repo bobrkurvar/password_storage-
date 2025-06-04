@@ -1,0 +1,34 @@
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy.types import Date, BigInteger
+from sqlalchemy import ForeignKey
+import datetime
+
+class Base(AsyncAttrs, DeclarativeBase):
+    pass
+
+class User(Base):
+    __tablename__ = 'bot_user'
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    username: Mapped[str]
+    accounts: Mapped[list["Account"]] = relationship("Account", back_populates="user")
+
+    def __str__(self):
+        text = f"id: {self.id}, username: {self.username}"
+        return text
+
+    def __repr__(self):
+        text = f"id: {self.id}, username: {self.username}"
+        return text
+
+    def dump(self):
+        return {'id': self.id, "username": self.username}
+
+class Account(Base):
+    __tablename__ = 'accounts'
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    resource: Mapped[str]
+
+    def dump(self):
+        return {'id': self.id, 'resource': self.resource}
+
