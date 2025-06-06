@@ -4,15 +4,20 @@ from aiogram.types import Message, CallbackQuery
 from bot.utils import get_inline_kb
 from bot.lexicon import phrases
 from bot.filters.callback_factory import CallbackPasswordFactory
+from aiogram.fsm.context import FSMContext
 
 router = Router()
 
 @router.message(CommandStart())
-async def process_command_start(message: Message):
+async def process_command_start(message: Message, state: FSMContext):
     await message.delete()
-    buttons = ('AUTH', 'ACCOUNTS', 'CREATE ACCOUNT')
+    buttons = ('SIGN IN', 'SIGN UP', 'ACCOUNTS', 'CREATE ACCOUNT')
     kb = get_inline_kb(*buttons, user_id=message.from_user.id)
-    await message.answer(text=phrases.start, reply_markup=kb)
+    msg = await message.answer(text=phrases.start, reply_markup=kb)
+    data = await state.get_data()
+    data.update(msg=msg.message_id)
+    await state.clear()
+    await state.update_data(data)
 
 @router.message(Command(commands=['help', ]))
 async def process_command_help(message: Message):

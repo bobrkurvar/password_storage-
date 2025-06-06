@@ -1,4 +1,3 @@
-
 from aiohttp import ClientSession
 from aiohttp.client_exceptions import ClientConnectorError
 import logging
@@ -10,7 +9,7 @@ def handle_ext_api(func):
     @wraps(func)
     async def wrapper(self, *args, **kwargs):
         try:
-            return await func(self, *args, **kwargs)
+            await func(self, *args, **kwargs)
         except ClientConnectorError:
             log.warning('поключение не установлено')
     return wrapper
@@ -23,7 +22,10 @@ class ExternalApi:
     @handle_ext_api
     async def create(self, prefix: str, **data):
         res = await self._session.post(self._url+ prefix + '/create', json = data)
-        return res
+        try:
+            return res.json['id']
+        except:
+            return None
 
     @handle_ext_api
     async def remove(self, prefix: str, **args):
@@ -39,9 +41,9 @@ class ExternalApi:
     async def update(self, prefix: str, **kwargs):
         await self._session.patch(self._url + prefix + '/update', json=kwargs)
 
-    @handle_ext_api
-    async def auth(self, prefix: str, **kwargs):
-        await self._session.get(self._url + prefix + '/auth', json=kwargs)
+    # @handle_ext_api
+    # async def auth(self, prefix: str, **kwargs):
+    #     await self._session.get(self._url + prefix + '/auth', json=kwargs)
 
     async def connect(self):
         if not self._session:

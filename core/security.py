@@ -6,14 +6,14 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from core import conf
 from datetime import timedelta, datetime, timezone
-from web.api.schemas.user import UserInput
+#from web.endpoints.schemas.user import UserInput
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/token")
 secret_key = conf.SECRET_KEY
 algorithm = conf.ALGORITHM
 
-def get_password_hash(user: UserInput) -> str:
-    hash_password = bcrypt.hash(user.password)
+def get_password_hash(user) -> str:
+    hash_password = bcrypt.hash(user)
     return hash_password
 
 def verify(plain_password: str, password_hash: Annotated[str, Depends(get_password_hash)]) -> bool:
@@ -44,4 +44,4 @@ def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
         raise credentials_exception
     return username
 
-getUserFromToken = Annotated[str, Depends(get_user_from_token)]
+getUserFromTokenDep = Annotated[str, Depends(get_user_from_token)]

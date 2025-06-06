@@ -11,6 +11,7 @@ class User(Base):
     __tablename__ = 'bot_user'
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     username: Mapped[str]
+    password: Mapped[str]
     accounts: Mapped[list["Account"]] = relationship("Account", back_populates="user")
 
     def __str__(self):
@@ -21,7 +22,7 @@ class User(Base):
         text = f"id: {self.id}, username: {self.username}"
         return text
 
-    def dump(self):
+    def model_dump(self):
         return {'id': self.id, "username": self.username}
 
 class Account(Base):
@@ -31,6 +32,14 @@ class Account(Base):
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey('bot_user.id'))
     user: Mapped['User'] = relationship('User', back_populates='accounts')
 
-    def dump(self):
+    def __str__(self):
+        text = f"id: {self.id}, resource: {self.resource}"
+        return text
+
+    def __repr__(self):
+        text = f"id: {self.id}, resource: {self.resource}"
+        return text
+
+    def model_dump(self):
         return {'id': self.id, 'resource': self.resource}
 
