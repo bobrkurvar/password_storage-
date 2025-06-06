@@ -8,7 +8,7 @@ from core import conf
 from datetime import timedelta, datetime, timezone
 #from web.endpoints.schemas.user import UserInput
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/login")
 secret_key = conf.SECRET_KEY
 algorithm = conf.ALGORITHM
 

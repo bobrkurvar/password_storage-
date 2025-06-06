@@ -36,18 +36,20 @@ async def process_input_new_password(message: Message, state: FSMContext, ext_ap
     await state.clear()
     await state.update_data(msg=msg.message_id)
 
-@router.message(StateFilter(InputPassword.new_password))
+@router.message(StateFilter(InputPassword.password))
 async def process_input_password(message: Message, state: FSMContext, ext_api_manager: ExternalApi):
-    pass
-    # await message.delete()
-    # user_id  = await ext_api_manager.read(prefix='user', password=get_password_hash(message.text), username=message.from_user.username,
-    #                                         id=message.from_user.id)
-    # log.info('создан пользователь: %s', user_id)
-    # msg = (await state.get_data()).get('msg')
-    # buttons = ('SIGN IN', 'SIGN UP', 'ACCOUNTS', 'CREATE ACCOUNT')
-    # kb = get_inline_kb(*buttons, user_id=user_id)
-    # await message.bot.edit_message_text(chat_id=message.chat.id, message_id=msg, text=phrases.start,
-    #                                      reply_markup=kb)
-    # await state.clear()
-    # await state.update_data(msg=msg.message_id)
+    await message.delete()
+    user_id  = await ext_api_manager.login(prefix='user', password=get_password_hash(message.text), username=message.from_user.username,
+                                            id=message.from_user.id)
+    if not user_id.get('error'):
+        log.info( 'пользователь %s не идентифицирован', message.from_user.username)
+    else:
+        log.info('пользователь %s идентифицирован', message.from_user.username)
+    msg = (await state.get_data()).get('msg')
+    buttons = ('SIGN IN', 'SIGN UP', 'ACCOUNTS', 'CREATE ACCOUNT')
+    kb = get_inline_kb(*buttons, user_id=user_id)
+    await message.bot.edit_message_text(chat_id=message.chat.id, message_id=msg, text=phrases.start,
+                                         reply_markup=kb)
+    await state.clear()
+    await state.update_data(msg=msg.message_id)
 

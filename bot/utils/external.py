@@ -41,9 +41,9 @@ class ExternalApi:
     async def update(self, prefix: str, **kwargs):
         await self._session.patch(self._url + prefix + '/update', json=kwargs)
 
-    # @handle_ext_api
-    # async def auth(self, prefix: str, **kwargs):
-    #     await self._session.get(self._url + prefix + '/auth', json=kwargs)
+    @handle_ext_api
+    async def login(self, prefix: str, **kwargs):
+        await self._session.get(self._url + prefix + '/login', json=kwargs)
 
     async def connect(self):
         if not self._session:
