@@ -15,7 +15,7 @@ def handle_ext_api(func):
             log.warning('поключение не установлено')
     return wrapper
 
-class MyExternalApiForBot:
+class ExternalApi:
     def __init__(self, url):
         self._url = url
         self._session = None
@@ -38,6 +38,10 @@ class MyExternalApiForBot:
     @handle_ext_api
     async def update(self, prefix: str, **kwargs):
         await self._session.patch(self._url + prefix + '/update', json=kwargs)
+
+    @handle_ext_api
+    async def auth(self, prefix: str, **kwargs):
+        await self._session.get(self._url + prefix + '/auth', json=kwargs)
 
     async def connect(self):
         if not self._session:

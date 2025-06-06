@@ -10,7 +10,7 @@ router = Router()
 @router.message(CommandStart())
 async def process_command_start(message: Message):
     await message.delete()
-    buttons = ('REGISTER', 'RESOURCES', 'CREATE RESOURCE')
+    buttons = ('AUTH', 'ACCOUNTS', 'CREATE ACCOUNT')
     kb = get_inline_kb(*buttons, user_id=message.from_user.id)
     await message.answer(text=phrases.start, reply_markup=kb)
 
@@ -23,7 +23,7 @@ async def process_command_help(message: Message):
 @router.callback_query(CallbackPasswordFactory.filter(F.act.lower()=='start'))
 async def process_button_start(callback: CallbackQuery):
     await callback.answer()
-    buttons = ('REGISTER', 'ACCOUNTS', 'CREATE ACCOUNT')
+    buttons = ('AUTH', 'ACCOUNTS', 'CREATE ACCOUNT')
     kb = get_inline_kb(*buttons, user_id=callback.from_user.id)
     await callback.message.edit_text(text=phrases.start, reply_markup=kb)
 
