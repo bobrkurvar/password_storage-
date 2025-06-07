@@ -24,17 +24,17 @@ async def process_input_account_name(message: Message, state: FSMContext):
     await message.delete()
     msg = (await state.get_data()).get('msg')
     kb = get_inline_kb('MENU')
-    await message.bot.edit_message_text(chat_id=message.chat.id, message_id=msg, text=phrases.account_password,
+    msg = await message.bot.edit_message_text(chat_id=message.chat.id, message_id=msg, text=phrases.account_password,
                                         reply_markup=kb)
     await state.update_data(msg=msg.message_id)
     await state.set_state(InputAccount.password)
 
 @router.message(StateFilter(InputAccount.password))
-async def process_input_account_password(message: Message, state: FSMContext, ext_api_manger: ExternalApi):
+async def process_input_account_password(message: Message, state: FSMContext, ext_api_manager: ExternalApi):
     await message.delete()
     name=(await state.get_data()).get('name')
     msg = (await state.get_data()).get('msg')
-    account = await ext_api_manger.create(prefix='account', resource=name,
+    account = await ext_api_manager.create(prefix='account', name=name,
                                           password=message.text, user_id=message.from_user.id)
     kb = get_inline_kb('MENU')
     msg = await message.bot.edit_message_text(chat_id=message.chat.id, message_id=msg,

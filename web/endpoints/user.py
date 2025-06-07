@@ -12,9 +12,10 @@ async def user_register(user: UserInput):
     user_id = await manager.create(model=User, **user.model_dump())
     return user_id
 
-@router.get('/login')
+@router.post('/login')
 async def login_user(user: UserInput):
-    if await manager.read(model=User, ident=user.model_dump()):
+    print(50 * '-', 'IN ENDPOINT: ', user.model_dump(), 50 * '-', sep='\n')
+    if await manager.read(model=User, **user.model_dump()):
         token = create_token({'sub': user.id})
         return {"access_token": token, "token_type": "bearer"}
     return {'error': 'User not fount'}

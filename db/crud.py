@@ -30,7 +30,7 @@ class Crud:
         async with self._session.begin() as session:
             tup = model(**kwargs)
             session.add(tup)
-            return tup.id
+            return tup.model_dump()
 
     @handle_db_operation
     async def delete(self, model, ident):
@@ -45,10 +45,11 @@ class Crud:
             await session.execute(query)
 
     @handle_db_operation
-    async def read(self, model, limit: int, offset: int | None = None, **ident):
+    async def read(self, model, limit: int | None = None, offset: int | None = None, **ident):
         async with self._session.begin() as session:
             query = select(model)
-            for key, val in ident:
+            print(50*'-', 'IN CRUD: ', ident, 50*'-', sep='\n')
+            for key, val in ident.items():
                 if hasattr(model, key):
                     query = query.filter(getattr(model, key) == val)
             if limit:

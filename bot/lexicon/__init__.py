@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from .core_lexicon import COMMAND_CORE
-from .user_lexicon import AUTHENTICATION
+from .user_lexicon import AUTHENTICATION, ACCOUNT
 
 class Phrases(BaseModel):
     start: str = COMMAND_CORE['start']
@@ -9,6 +9,6 @@ class Phrases(BaseModel):
     password: str = AUTHENTICATION['password']
     account_name: str = ACCOUNT['account name']
     account_password: str = ACCOUNT['account password']
-    account_created: str = ACCOUNT['account create']
+    account_created: str = ACCOUNT['account created']
 
 phrases = Phrases()

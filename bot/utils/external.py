@@ -22,7 +22,7 @@ class ExternalApi:
     @handle_ext_api
     async def create(self, prefix: str, **data):
         res = await self._session.post(self._url+ prefix + '/create', json = data)
-        return (await res.json()).get('id')
+        return await res.json()
 
     @handle_ext_api
     async def remove(self, prefix: str, **args):
@@ -40,7 +40,8 @@ class ExternalApi:
 
     @handle_ext_api
     async def login(self, prefix: str, **kwargs):
-        await self._session.get(self._url + prefix + '/login', json=kwargs)
+        #print(50 * '-', kwargs, 50 * '-', sep='\n')
+        await self._session.post(self._url + prefix + '/login', json=kwargs)
 
     async def connect(self):
         if not self._session:
