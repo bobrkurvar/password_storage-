@@ -16,6 +16,10 @@ def get_password_hash(user) -> str:
     hash_password = bcrypt.hash(user)
     return hash_password
 
+def get_password_from_hash(pas_hash: str) -> str:
+    password = bcrypt.encrypt(pas_hash, secret=secret_key)
+    return password
+
 def verify(plain_password: str, password_hash: Annotated[str, Depends(get_password_hash)]) -> bool:
     return bcrypt.verify(plain_password, password_hash)
 
@@ -37,11 +41,11 @@ def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
     )
     try:
         payload = jwt.decode(token, secret_key, algorithms=algorithm)
-        username = payload.get("sub")
-        if username is None:
+        user_id = payload.get("sub")
+        if user_id is None:
             raise credentials_exception
     except InvalidTokenError:
         raise credentials_exception
-    return username
+    return user_id
 
 getUserFromTokenDep = Annotated[str, Depends(get_user_from_token)]

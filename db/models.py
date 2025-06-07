@@ -8,7 +8,7 @@ class Base(AsyncAttrs, DeclarativeBase):
 
 class User(Base):
     __tablename__ = 'bot_user'
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, default=1, autoincrement=True)
     username: Mapped[str]
     password: Mapped[str]
     accounts: Mapped[list["Account"]] = relationship("Account", back_populates="user")

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from .core_lexicon import COMMAND_CORE
-from .user_lexicon import AUTHENTICATION, ACCOUNT
+from .user_lexicon import AUTHENTICATION
 
 class Phrases(BaseModel):
     start: str = COMMAND_CORE['start']

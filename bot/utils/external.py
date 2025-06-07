@@ -22,10 +22,7 @@ class ExternalApi:
     @handle_ext_api
     async def create(self, prefix: str, **data):
         res = await self._session.post(self._url+ prefix + '/create', json = data)
-        try:
-            return res.json['id']
-        except:
-            return None
+        return (await res.json()).get('id')
 
     @handle_ext_api
     async def remove(self, prefix: str, **args):
@@ -34,7 +31,7 @@ class ExternalApi:
     @handle_ext_api
     async def read(self, prefix: str, **kwargs):
         res = await self._session.get(self._url + prefix + '/read', params=kwargs)
-        res = await res.json()
+        res = res.json()
         return res
 
     @handle_ext_api
