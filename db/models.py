@@ -26,9 +26,10 @@ class User(Base):
 
 class Account(Base):
     __tablename__ = 'accounts'
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, default=1, autoincrement=True)
     resource: Mapped[str]
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey('bot_user.id'))
+    password: Mapped[str]
     user: Mapped['User'] = relationship('User', back_populates='accounts')
 
     def __str__(self):

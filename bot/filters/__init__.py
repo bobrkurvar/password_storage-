@@ -1,1 +1,1 @@
-from .callback_factory import CallbackPasswordFactory
+from .callback_factory import CallbackFactory
