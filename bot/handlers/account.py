@@ -14,7 +14,7 @@ router = Router()
 @router.callback_query(StateFilter(default_state), CallbackFactory.filter(F.act.lower()=='create account'))
 @get_auth
 async def process_create_account(callback: CallbackQuery, state: FSMContext, ext_api_manager: ExternalApi):
-    await callback.answer()
+    #await callback.answer()
     kb = get_inline_kb('MENU')
     msg = await callback.message.edit_text(text=phrases.account_name, reply_markup=kb)
     await state.update_data(msg=msg.message_id)

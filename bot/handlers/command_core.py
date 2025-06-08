@@ -44,7 +44,7 @@ async def process_command_help(message: Message, state: FSMContext):
 
 @router.callback_query(CallbackFactory.filter(F.act.lower() == 'start'))
 async def process_button_start(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
+    #await callback.answer()
     buttons = ('ACCOUNTS', 'CREATE ACCOUNT')
     kb = get_inline_kb(*buttons, user_id=callback.from_user.id)
     msg = await callback.message.edit_text(text=phrases.start, reply_markup=kb)
@@ -52,7 +52,7 @@ async def process_button_start(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(CallbackFactory.filter(F.act.lower() == 'menu'))
 async def process_button_menu(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
+    #await callback.answer()
     data = await state.get_data()
     buttons = ('ACCOUNTS', 'CREATE ACCOUNT')
     kb = get_inline_kb(*buttons, user_id=callback.from_user.id)

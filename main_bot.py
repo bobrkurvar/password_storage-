@@ -6,6 +6,7 @@ from core import conf, logger
 from bot.handlers import main_router
 import logging
 from bot.utils import ext_api_manager
+from aiogram.utils.callback_answer import CallbackAnswerMiddleware
 
 log = logging
 log.basicConfig(level=logging.DEBUG,
@@ -16,6 +17,7 @@ async def main():
         token = conf.BOT_TOKEN
         bot = Bot(token=token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
         dp = Dispatcher()
+        dp.callback_query.middleware(CallbackAnswerMiddleware())
         await ext_api_manager.connect()
         dp['ext_api_manager'] = ext_api_manager
         dp.include_router(main_router)
