@@ -7,11 +7,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from aiogram.filters import StateFilter
 from bot.lexicon import phrases
+from bot.utils.decorators import get_auth
 
 router = Router()
 
 @router.callback_query(StateFilter(default_state), CallbackFactory.filter(F.act.lower()=='create account'))
-async def process_create_account(callback: CallbackQuery, state: FSMContext):
+@get_auth
+async def process_create_account(callback: CallbackQuery, state: FSMContext, ext_api_manager: ExternalApi):
     await callback.answer()
     kb = get_inline_kb('MENU')
     msg = await callback.message.edit_text(text=phrases.account_name, reply_markup=kb)
@@ -37,8 +39,8 @@ async def process_input_account_password(message: Message, state: FSMContext, ex
     token = (await state.get_data()).get('token')
     account = await ext_api_manager.create(prefix='account', auth=token, resource=name,
                                           password=message.text, user_id=message.from_user.id)
+    print(50*'-', account, 50*'-', sep='\n')
     kb = get_inline_kb('MENU')
-    print(account)
     msg = await message.bot.edit_message_text(chat_id=message.chat.id, message_id=msg,
                                         text=phrases.account_created.format(account), reply_markup=kb)
     await state.clear()

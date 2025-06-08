@@ -49,7 +49,6 @@ class Crud:
     async def read(self, model, limit: int | None = None, offset: int | None = None, **ident):
         async with self._session.begin() as session:
             query = select(model)
-            #print(50*'-', 'IN CRUD: ', ident, 50*'-', sep='\n')
             for key, val in ident.items():
                 if hasattr(model, key):
                     query = query.filter(getattr(model, key) == val)

@@ -14,6 +14,7 @@ async def accounts_list(user_id: getUserFromTokenDep):
 @router.post('/create')
 async def create_account(acc: AccInput, user: getUserFromTokenDep):
     res = await manager.create(model=Account, **acc.model_dump())
+    print(50*'-', f'создан {res}', 50*'-', sep='\n')
     return res.get('resource')
 
 
