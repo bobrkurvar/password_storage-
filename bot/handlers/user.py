@@ -43,13 +43,16 @@ async def process_input_new_password(message: Message, state: FSMContext, ext_ap
 @router.message(StateFilter(InputUser.password))
 async def process_input_password(message: Message, state: FSMContext, ext_api_manager: ExternalApi):
     await message.delete()
-    user_id  = await ext_api_manager.login(prefix='user', password=get_password_hash(message.text), username=message.from_user.username,
+    user_token  = await ext_api_manager.login(prefix='user', password=message.text, username=message.from_user.username,
                                             id=message.from_user.id)
+    if user_token:
+        user_token=user_token.get('access_token')
+    print(50*'-', user_token, 50*'-', sep='\n')
     msg = (await state.get_data()).get('msg')
     buttons = ('SIGN IN', 'SIGN UP', 'ACCOUNTS', 'CREATE ACCOUNT')
-    kb = get_inline_kb(*buttons, user_id=user_id)
+    kb = get_inline_kb(*buttons, user_id=message.from_user.id)
     msg = await message.bot.edit_message_text(chat_id=message.chat.id, message_id=msg, text=phrases.start,
                                          reply_markup=kb)
     await state.clear()
-    await state.update_data(msg=msg.message_id)
+    await state.update_data(msg=msg.message_id, token=user_token)
 

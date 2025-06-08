@@ -22,11 +22,11 @@ class User(Base):
         return text
 
     def model_dump(self):
-        return {'id': self.id, "username": self.username}
+        return {'id': self.id, "username": self.username, "password": self.password}
 
 class Account(Base):
     __tablename__ = 'accounts'
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, default=1, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     resource: Mapped[str]
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey('bot_user.id'))
     password: Mapped[str]

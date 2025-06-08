@@ -15,8 +15,8 @@ def handle_db_operation(func):
         except IntegrityError as err:
             raise CustomDbException(message='данный пользователь уже создан',
                                   detail=' '.join(err.detail), status_code=200)
-        except SQLAlchemyError:
-            raise CustomDbException(message='ошибка на сторорне быза данных', detail='ошибка на сторорне быза данных',
+        except SQLAlchemyError as err:
+            raise CustomDbException(message=str(err), detail=str(err),
                                   status_code=500)
     return wrapper
 
@@ -28,6 +28,7 @@ class Crud:
     @handle_db_operation
     async def create(self, model, **kwargs):
         async with self._session.begin() as session:
+            print(kwargs)
             tup = model(**kwargs)
             session.add(tup)
             return tup.model_dump()
@@ -48,7 +49,7 @@ class Crud:
     async def read(self, model, limit: int | None = None, offset: int | None = None, **ident):
         async with self._session.begin() as session:
             query = select(model)
-            print(50*'-', 'IN CRUD: ', ident, 50*'-', sep='\n')
+            #print(50*'-', 'IN CRUD: ', ident, 50*'-', sep='\n')
             for key, val in ident.items():
                 if hasattr(model, key):
                     query = query.filter(getattr(model, key) == val)
@@ -57,7 +58,8 @@ class Crud:
             if offset:
                 query = query.offset(offset)
             res = (await session.execute(query)).scalars()
-            return [r.to_dict() for r in res]
+            res =  [r.model_dump() for r in res]
+            return res[0] if len(res) == 1 else res
 
     async def close_and_dispose(self):
         await self._engine.dispose()

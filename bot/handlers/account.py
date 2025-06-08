@@ -34,9 +34,11 @@ async def process_input_account_password(message: Message, state: FSMContext, ex
     await message.delete()
     name=(await state.get_data()).get('name')
     msg = (await state.get_data()).get('msg')
-    account = await ext_api_manager.create(prefix='account', name=name,
+    token = (await state.get_data()).get('token')
+    account = await ext_api_manager.create(prefix='account', auth=token, resource=name,
                                           password=message.text, user_id=message.from_user.id)
     kb = get_inline_kb('MENU')
+    print(account)
     msg = await message.bot.edit_message_text(chat_id=message.chat.id, message_id=msg,
                                         text=phrases.account_created.format(account), reply_markup=kb)
     await state.clear()

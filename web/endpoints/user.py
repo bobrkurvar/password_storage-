@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from core.security import create_token
+from core.security import create_token, verify, get_password_hash
 from web.endpoints.schemas.user import UserInput, OutputUser
 from db import manager
 from db.models import User
@@ -14,9 +14,9 @@ async def user_register(user: UserInput):
 
 @router.post('/login')
 async def login_user(user: UserInput):
-    print(50 * '-', 'IN ENDPOINT: ', user.model_dump(), 50 * '-', sep='\n')
-    if await manager.read(model=User, **user.model_dump()):
-        token = create_token({'sub': user.id})
+    cur = await manager.read(model=User, id=user.id)
+    if verify(user.password, cur.get('password')):
+        token = create_token({'sub': str(user.id)})
         return {"access_token": token, "token_type": "bearer"}
     return {'error': 'User not fount'}
 
