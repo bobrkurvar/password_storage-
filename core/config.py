@@ -3,11 +3,21 @@ from pathlib import Path
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
-    DATABASE_URL: str
-    BOT_TOKEN: str
-    SECRET_KEY: str
-    ALGORITHM: str
+    db_host: str
+    db_port: int
+    db_user: str
+    db_password: str
+    db_name: str
+    bot_token: str
+    redis_host: str
+    api_host: str
+    secret_key: str
+    algorithm: str
 
-def load_config(path: Path) -> Settings:
-   conf = Settings(_env_file=path)
+    @property
+    def db_url(self):
+        return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+
+def load_config(path: Path | None = None) -> Settings:
+   conf = Settings(_env_file=path) if path else Settings()
    return conf

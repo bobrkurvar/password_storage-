@@ -1,9 +1,8 @@
-from aiogram import Router, F
-from bot.filters import CallbackFactory
-from aiogram.types import CallbackQuery, Message
-from bot.utils import ExternalApi, get_inline_kb
+from aiogram import Router
+from aiogram.types import Message
+from utils.external import MyExternalApiForBot
+from bot.utils.keyboards import get_inline_kb
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import default_state
 from aiogram.filters import StateFilter
 from bot.filters.states import InputUser
 from bot.lexicon import phrases
@@ -12,10 +11,10 @@ import logging
 
 router = Router()
 
-log = logging.getLogger('app.bot.handlers.user')
+log = logging.getLogger(__name__)
 
 @router.message(StateFilter(InputUser.password, InputUser.new_password))
-async def process_input_password(message: Message, state: FSMContext, ext_api_manager: ExternalApi):
+async def process_input_password(message: Message, state: FSMContext, ext_api_manager: MyExternalApiForBot):
     await message.delete()
     cur_state = await state.get_state()
     if cur_state == InputUser.new_password:

@@ -7,7 +7,7 @@ class Base(AsyncAttrs, DeclarativeBase):
     pass
 
 class User(Base):
-    __tablename__ = 'bot_user'
+    __tablename__ = 'pas_users'
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, default=1, autoincrement=True)
     username: Mapped[str]
     password: Mapped[str]
@@ -28,7 +28,7 @@ class Account(Base):
     __tablename__ = 'accounts'
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     resource: Mapped[str]
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey('bot_user.id'))
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey('pas_users.id'))
     password: Mapped[str]
     user: Mapped['User'] = relationship('User', back_populates='accounts')
 

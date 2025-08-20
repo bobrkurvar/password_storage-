@@ -1,7 +1,10 @@
 from aiogram import Router
 from . import command_core, user, account
+from aiogram.utils.callback_answer import CallbackAnswerMiddleware
+from bot.utils.middleware import DeleteUsersMessage
 
 main_router = Router()
-main_router.include_router(command_core.router)
-main_router.include_router(user.router)
-main_router.include_router(account.router)
+main_router.include_routers(command_core.router, user.router, account.router)
+
+main_router.callback_query.outer_middleware(CallbackAnswerMiddleware())
+main_router.message.outer_middleware(DeleteUsersMessage())
