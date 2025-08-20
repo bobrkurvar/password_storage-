@@ -1,5 +1,6 @@
 import jwt
 from fastapi.security.oauth2 import OAuth2PasswordBearer
+from fastapi import APIRouter, Body
 from passlib.hash import bcrypt
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
@@ -9,6 +10,7 @@ from datetime import timedelta, datetime, timezone
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/login")
 secret_key = conf.secret_key
 algorithm = conf.algorithm
+router = APIRouter(prefix='/security')
 
 def get_password_hash(password: str) -> str:
     hash_password = bcrypt.hash(password)
@@ -50,5 +52,17 @@ def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
     except jwt.ExpiredSignatureError:
         raise expire_credentials_exception
     return user_id
+
+@router.post("/refresh")
+def refresh_token(refresh_token: Annotated[str, Body()]):
+    try:
+        payload = jwt.decode(refresh_token, secret_key, algorithms=algorithm)
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
 
 getUserFromTokenDep = Annotated[str, Depends(get_user_from_token)]

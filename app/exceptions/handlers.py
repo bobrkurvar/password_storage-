@@ -2,7 +2,6 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi import Request, status
 from app.exceptions.schemas import CustomExceptionModel
-from utils import ext_api_manager
 import logging
 
 
@@ -14,11 +13,6 @@ def custom_exception_handler(request: Request, exc):
                                                   er_details=exc.detail))
     log.exception(error['er_message'])
     return JSONResponse(status_code=exc.status_code, content=error)
-
-async def token_expire_exception_handler(request: Request, exc):
-    log.exception("Access token expire error")
-    await ext_api_manager.refresh(prefix='/refresh')
-
 
 def global_exception_handler(request: Request, exc):
     log.exception("Internal server error")
