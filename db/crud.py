@@ -44,7 +44,7 @@ class Crud:
             if limit:
                 query = query.limit(limit)
             res = (await session.execute(query)).scalars()
-            return [r.to_dict() for r in res]
+            return [r.model_dump() for r in res]
 
     async def close_and_dispose(self):
         await self._engine.dispose()

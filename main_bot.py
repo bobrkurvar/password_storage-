@@ -8,7 +8,7 @@ from bot.handlers import main_router
 from aiogram.fsm.storage.memory import MemoryStorage
 from bot.filters.states import CustomRedisStorage
 import asyncio
-from bot.utils import ext_api_manager
+from utils import ext_api_manager
 from redis import exceptions
 
 bot = Bot(conf.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))

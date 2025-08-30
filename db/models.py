@@ -41,5 +41,5 @@ class Account(Base):
         return text
 
     def model_dump(self):
-        return {'id': self.id, 'resource': self.resource}
+        return {'id': self.id, 'resource': self.resource, 'password': self.password}
 

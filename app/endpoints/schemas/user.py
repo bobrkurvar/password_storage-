@@ -7,3 +7,7 @@ class UserInput(BaseModel):
 
 class OutputUser(BaseModel):
     id: int | str
+
+class OutputToken(BaseModel):
+    access_token: str
+    refresh_token: str
