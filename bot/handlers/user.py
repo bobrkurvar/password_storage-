@@ -49,10 +49,12 @@ async def process_input_password_for_sign_in(message: Message, state: FSMContext
         tokens = await ext_api_manager.login(id=message.from_user.id, password=message.text, username=message.from_user.username)
         access_token = tokens.get('access_token')
         access_time = 900
-        await state.update_data(access_token=access_token, ttl=access_time)
+        #await state.update_data(access_token=access_token, ttl=access_time)
+        await state.storage.set_token(state.key, token_name='access_token', token_value=access_token, ttl=access_time)
         refresh_token = tokens.get('refresh_token')
         refresh_time = 86400*7
-        await state.update_data(refresh_token=refresh_token, ttl=refresh_time)
+        await state.storage.set_token(state.key, token_name='refresh_token', token_value=refresh_token, ttl=refresh_time)
+        #await state.update_data(refresh_token=refresh_token, ttl=refresh_time)
         buttons = ('ACCOUNTS', 'CREATE ACCOUNT')
     kb = get_inline_kb(*buttons, user_id=message.from_user.id)
     msg = (await message.bot.edit_message_text(chat_id=message.chat.id, message_id=msg, text=phrases.start,

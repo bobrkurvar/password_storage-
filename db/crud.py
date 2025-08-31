@@ -16,11 +16,12 @@ class Crud:
             session.add(tup)
             return tup.id
 
-    async def delete(self, model, ident = None):
+    async def delete(self, model, ident = None, ident_val = None):
         async with self._session.begin() as session:
             if ident:
                 for_remove = await session.get(model, ident)
                 await session.delete(for_remove)
+                return getattr(for_remove, ident)
             else:
                 await session.execute(delete(model))
 

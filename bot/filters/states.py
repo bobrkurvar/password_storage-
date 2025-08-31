@@ -19,8 +19,24 @@ class CustomRedisStorage(RedisStorage):
         if self.state_ttl:
             await self.redis.expire(data_key, self.state_ttl)
 
-    async def update_data(self, key, data: dict, *, ttl: Optional[int] = None):
+    async def set_token(self, key: StorageKey, token_name: str, token_value: str, ttl: int):
+        data_key = f"fsm:{key.user_id}:{key.chat_id}:{token_name}"
+        await self.redis.set(data_key, token_value)
+        await self.redis.expire(data_key, ttl)
+
+    async def get_token(self, key: StorageKey, token_name: str) -> str | None:
+        data_key = f"fsm:{key.user_id}:{key.chat_id}:{token_name}"
+        token = await self.redis.get(data_key)
+        return token.decode('utf-8') if token else None
+
+    async def update_data(self, key: StorageKey, data: dict, *, ttl: Optional[int] = None):
+        # забираем ttl из данных, если он там оказался
+        ttl = ttl or data.pop("ttl", None)
+
+        # сохраняем уже очищенные данные
         await super().update_data(key, data)
+
+        # если ttl указан -> обновляем срок жизни ключа
         if ttl is not None:
             data_key = f"fsm:{key.user_id}:{key.chat_id}:data"
             await self.redis.expire(data_key, ttl)

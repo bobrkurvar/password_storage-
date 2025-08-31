@@ -14,16 +14,17 @@ class AuthMiddleware(BaseMiddleware):
                        event: CallbackQuery,
                        data: dict[str, Any]):
         state, ext_api_manager = data.get('state'), data.get('ext_api_manager')
-        state_data = await state.get_data()
-        access_token = state_data.get('access_token')
+        access_token = await state.storage.get_token(state.key, "access_token")
         if not access_token:
             log.info('access token не существует')
-            refresh_token = state_data.get('refresh_token')
+            refresh_token = await state.storage.get_token(state.key, "refresh_token")
+            access_time = 900
             if refresh_token:
                 log.info('refresh token существует')
+                refresh_time = 86400 * 7
                 tokens = await ext_api_manager.refresh(refresh_token)
-                data.update(access_token=tokens.get('access_token'), refresh_token=tokens.get('refresh_token'))
-                await state.set_state(state_data)
+                await state.storage.set_token(access_token=tokens.get('access_token'), ttl=access_time)
+                await state.storage.set_token(refresh_token=tokens.get('refresh_token'), ttl=refresh_time)
                 return await handler(event, data)
             else:
                 log.info('refresh token не существует')
