@@ -15,15 +15,15 @@ router = Router()
 
 @router.callback_query(StateFilter(default_state), CallbackFactory.filter(F.act.lower()=='create account'))
 async def process_create_account(callback: CallbackQuery, state: FSMContext):
-    access_token = (await state.get_data()).get('access_token')
-    if not access_token:
-        buttons = ('SIGN IN', 'SIGN UP')
-        kb = get_inline_kb(*buttons)
-        msg = (await callback.message.edit_text(text=phrases.start, reply_markup=kb)).message_id
-    else:
-        kb = get_inline_kb('MENU')
-        msg = (await callback.message.edit_text(text=phrases.account_name, reply_markup=kb)).message_id
-        await state.set_state(InputAccount.name)
+#     access_token = (await state.get_data()).get('access_token')
+#     if not access_token:
+#         buttons = ('SIGN IN', 'SIGN UP')
+#         kb = get_inline_kb(*buttons)
+#         msg = (await callback.message.edit_text(text=phrases.start, reply_markup=kb)).message_id
+#     else:
+    kb = get_inline_kb('MENU')
+    msg = (await callback.message.edit_text(text=phrases.account_name, reply_markup=kb)).message_id
+    await state.set_state(InputAccount.name)
     await state.update_data(msg=msg)
 
 @router.message(StateFilter(InputAccount.name))
@@ -48,12 +48,18 @@ async def process_input_account_password(message: Message, state: FSMContext, ex
     account = await ext_api_manager.create(prefix='account', access_token=access_token, resource=name, password=message.text, user_id=message.from_user.id)
     if account is None:
         refresh_token = (await state.get_data()).get('refresh_token')
-        tokens = await ext_api_manager.refresh(refresh_token)
-        access_token, refresh_token = tokens.get('access_token'), tokens.get('refresh_token')
-        access_time, refresh_time = 900, 86400*7
-        await state.update_data(access_token=access_token, ttl=access_time)
-        await state.update_data(refresh_token=refresh_token, ttl=refresh_time)
-        account = await ext_api_manager.create(prefix='account', access_token=access_token, resource=name, password=message.text, user_id=message.from_user.id)
+        if refresh_token:
+            tokens = await ext_api_manager.refresh(refresh_token)
+            access_token, refresh_token = tokens.get('access_token'), tokens.get('refresh_token')
+            access_time, refresh_time = 900, 86400*7
+            await state.update_data(access_token=access_token, ttl=access_time)
+            await state.update_data(refresh_token=refresh_token, ttl=refresh_time)
+            account = await ext_api_manager.create(prefix='account', access_token=access_token, resource=name,
+                                                   password=message.text, user_id=message.from_user.id)
+        else:
+            data.pop('access_token')
+            data.pop('refresh_token')
+
     kb = get_inline_kb('MENU')
     try:
         await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)

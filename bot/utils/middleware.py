@@ -1,59 +1,40 @@
-from bot.filters.states import InputUser
 from aiogram.types import Message, CallbackQuery
 from aiogram import BaseMiddleware
-from bot.lexicon import phrases
-from bot.utils.keyboards import get_inline_kb
 from typing import Callable, Any, Awaitable
+from bot.utils.keyboards import get_inline_kb
+from bot.lexicon import phrases
+import logging
 
-# class Auth(BaseMiddleware):
-#     async def __call__(self,
-#                        handler: Callable[[CallbackQuery, dict[str, Any]], Awaitable[Any]],
-#                        event: CallbackQuery,
-#                        data: dict[str, Any]):
-#
-#         state = data.get('state'), ext_api_manager = data.get('ext_api_manager')
-#         token = (await state.get_data()).get('token')
-#         msg = (await state.get_data()).get('msg')
-#         if token:
-#             await state.update_data(token=token)
-#             await handler(*args, **kwargs)
-#         else:
-#             message = next((i for i in args if isinstance(i, Message)), None)
-#             kb = get_inline_kb('MENU')
-#             if message:
-#                 if await ext_api_manager.read(prefix='user', id=message.from_user.id):
-#                     text=phrases.login
-#                     await state.set_state(InputUser.password)
-#                 else:
-#                     await state.set_state(InputUser.new_password)
-#                     text = phrases.reg
-#                 msg = await message.bot.send_message(chat_id=message.chat.id, text=text, reply_markup=kb) if not msg else await  message.bot.edit_message_text(chat_id=message.chat.id,  message_id=msg,                                                                                                                                                   text=phrases.password, reply_markup=kb)
-#                 msg = msg.message_id
-#             else:
-#                 callback = next((i for i in args if isinstance(i, CallbackQuery)), None)
-#                 await callback.answer()
-#                 if await ext_api_manager.read(prefix='user', id=callback.from_user.id):
-#                     text = phrases.login
-#                     await state.set_state(InputUser.password)
-#                 else:
-#                     await state.set_state(InputUser.new_password)
-#                     text = phrases.reg
-#                 msg = await callback.message.edit_text(text=text, reply_markup=kb)
-#                 msg = msg.message_id
-#             await state.update_data(msg=msg)
-#
-#
-# class Auth(BaseMiddleware):
-#     async def __call__(self,
-#                        handler: Callable[[CallbackQuery, dict[str, Any]], Awaitable[Any]],
-#                        event: CallbackQuery,
-#                        data: dict[str, Any]):
-#
-#         state, callback_data, ext_api_manager = data.get('state'), data.get('callback_data'), data.get('ext_api_manager')
-#         data = await state.get_data()
-#         #token = data.get('token')
 
-class DeleteUsersMessage(BaseMiddleware):
+log = logging.getLogger(__name__)
+
+class AuthMiddleware(BaseMiddleware):
+    async def __call__(self,
+                       handler: Callable[[CallbackQuery, dict[str, Any]], Awaitable[Any]],
+                       event: CallbackQuery,
+                       data: dict[str, Any]):
+        state, ext_api_manager = data.get('state'), data.get('ext_api_manager')
+        state_data = await state.get_data()
+        access_token = state_data.get('access_token')
+        if not access_token:
+            log.info('access token не существует')
+            refresh_token = state_data.get('refresh_token')
+            if refresh_token:
+                log.info('refresh token существует')
+                tokens = await ext_api_manager.refresh(refresh_token)
+                data.update(access_token=tokens.get('access_token'), refresh_token=tokens.get('refresh_token'))
+                await state.set_state(state_data)
+                return await handler(event, data)
+            else:
+                log.info('refresh token не существует')
+                buttons = ('SIGN IN', 'SIGN UP')
+                kb = get_inline_kb(*buttons)
+                await event.message.edit_text(text=phrases.start, reply_markup=kb)
+        else:
+            log.info('access token существует')
+            return await handler(event, data)
+
+class DeleteUsersMessageMiddleware(BaseMiddleware):
     async def __call__(self,
                        handler: Callable[[Message, dict[str, Any]], Awaitable[Any]],
                        event: Message,
