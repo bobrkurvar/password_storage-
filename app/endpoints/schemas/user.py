@@ -1,7 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Optional
 
 class UserInput(BaseModel):
-    id: int
+    id: int | None = None
     password: str
     username: str
 

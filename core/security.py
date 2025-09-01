@@ -7,7 +7,7 @@ from fastapi import Depends, HTTPException, status
 from core import conf
 from datetime import timedelta, datetime, timezone
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 secret_key = conf.secret_key
 algorithm = conf.algorithm
 
