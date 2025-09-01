@@ -46,7 +46,7 @@ async def process_input_password_for_sign_in(message: Message, state: FSMContext
                                      username=message.from_user.username)
         buttons = ('SIGN IN', 'SIGN UP')
     else:
-        tokens = await ext_api_manager.login(client_id=message.from_user.id, password=message.text, username=message.from_user.username)
+        tokens = await ext_api_manager.login(client_id=str(message.from_user.id), password=message.text, username=message.from_user.username)
         access_token = tokens.get('access_token')
         access_time = 900
         #await state.update_data(access_token=access_token, ttl=access_time)

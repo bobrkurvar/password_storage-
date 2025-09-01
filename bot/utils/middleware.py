@@ -23,8 +23,8 @@ class AuthMiddleware(BaseMiddleware):
                 log.info('refresh token существует')
                 refresh_time = 86400 * 7
                 tokens = await ext_api_manager.refresh(refresh_token)
-                await state.storage.set_token(access_token=tokens.get('access_token'), ttl=access_time)
-                await state.storage.set_token(refresh_token=tokens.get('refresh_token'), ttl=refresh_time)
+                await state.storage.set_token(state.key, token_name='access_token', token_value=tokens.get('access_token'), ttl=access_time)
+                await state.storage.set_token(state.key, token_name='refresh_token',token_value=tokens.get('refresh_token'), ttl=refresh_time)
                 return await handler(event, data)
             else:
                 log.info('refresh token не существует')

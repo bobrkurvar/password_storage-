@@ -9,6 +9,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from aiogram.filters import StateFilter, Command
 from bot.lexicon import phrases
+from core.security import encrypt, decrypt
 import logging
 
 
@@ -42,8 +43,10 @@ async def process_input_account_password(message: Message, state: FSMContext, ex
     name = data.pop('name')
     data.pop('acc_lst', None)
     access_token = await state.storage.get_token(state.key, "access_token")
+    master_password = (await ext_api_manager.read(prefix='user', ident_val=message.from_user.id)).get('password')
+    enc_pass = encrypt(message.text, master_password)
     account = await ext_api_manager.create(prefix='account', access_token=access_token, resource=name,
-                                           password=message.text, user_id=message.from_user.id)
+                                           password=enc_pass, user_id=message.from_user.id)
     kb = get_inline_kb('MENU')
     try:
         await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)

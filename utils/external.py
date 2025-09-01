@@ -69,7 +69,7 @@ class MyExternalApiForBot:
 
     @handle_ext_api
     async def login(self, **kwargs):
-        async with self._session.post(self._url + 'login', json=kwargs) as resp:
+        async with self._session.post(self._url + 'login', data=kwargs) as resp:
             tokens = await resp.json()
             access_token = tokens.get('access_token')
             refresh_token = tokens.get('refresh_token')
