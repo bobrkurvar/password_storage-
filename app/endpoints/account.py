@@ -25,8 +25,6 @@ async def create_account(acc: AccInput, manager: DbManagerDep, user_id: getUserF
                                 status_code=status.HTTP_200_OK)
     return acc.resource
 
-@router.delete('{id_}')
-async def delete_account_by_id(id_: int, user_id: getUserFromTokenDep, manager: DbManagerDep):
 
 
 
