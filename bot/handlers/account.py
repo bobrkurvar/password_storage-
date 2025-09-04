@@ -11,6 +11,7 @@ from aiogram.filters import StateFilter, Command
 from bot.lexicon import phrases
 from core.security import encrypt, decrypt
 import logging
+import base64
 
 
 router = Router()
@@ -43,8 +44,8 @@ async def process_input_account_password(message: Message, state: FSMContext, ex
     name = data.pop('name')
     data.pop('acc_lst', None)
     access_token = await state.storage.get_token(state.key, "access_token")
-    master_password = (await ext_api_manager.read(prefix='user', ident_val=message.from_user.id)).get('password')
-    enc_pass = encrypt(message.text, master_password)
+    master_password = (await ext_api_manager.read(prefix='user', ident_val=message.from_user.id))[0].get('password')
+    enc_pass = base64.urlsafe_b64encode(encrypt(message.text, master_password)).decode()
     account = await ext_api_manager.create(prefix='account', access_token=access_token, resource=name,
                                            password=enc_pass, user_id=message.from_user.id)
     kb = get_inline_kb('MENU')
@@ -62,6 +63,7 @@ async def press_button_accounts(callback: CallbackQuery, ext_api_manager: MyExte
     data = await state.get_data()
     acc_lst = data.get('acc_lst')
     access_token = await state.storage.get_token(state.key, "access_token")
+    master_password = (await ext_api_manager.read(prefix='user', ident_val=callback.from_user.id))[0].get('password')
     log.debug('token: %s', access_token)
     if not acc_lst:
         acc_lst = await ext_api_manager.read(prefix='account', access_token=access_token)
@@ -69,7 +71,8 @@ async def press_button_accounts(callback: CallbackQuery, ext_api_manager: MyExte
     if acc_lst:
         text = '<b>Список аккаунтов:\n</b>'
         for acc in acc_lst:
-            text += phrases.account_list.format(acc.get('resource'), acc.get('password'))
+            encrypted_bytes = base64.urlsafe_b64decode(acc.get('password'))
+            text += phrases.account_list.format(acc.get('resource'), decrypt(encrypted_bytes, master_password))
     else:
         text='<b>\t\t\tСписок аккаунтов пуст</b>'
     kb = get_inline_kb('MENU')

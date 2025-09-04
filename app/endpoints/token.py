@@ -18,7 +18,7 @@ async def login_user(user: Annotated[OAuth2PasswordRequestForm, Depends()], mana
     if user.client_id is None:
         cur = (await manager.read(model=User, ident='username', ident_val=user.username))[0]
     else:
-        cur = (await manager.read(model=User, ident=int(user.client_id)))[0]
+        cur = (await manager.read(model=User, ident='id', ident_val=int(user.client_id)))[0]
     if not cur:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='user not found')
     log.info(cur.get('password'))
