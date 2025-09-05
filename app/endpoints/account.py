@@ -2,11 +2,15 @@ from fastapi import APIRouter, status
 from core.security import getUserFromTokenDep
 from db import DbManagerDep
 from db.models import Account
-from app.endpoints.schemas.account import AccInput
+from app.endpoints.schemas.account import AccInput, AccUpdate
 from app.exceptions.custom_errors import CustomDbException
 from sqlalchemy.exc import IntegrityError
+from typing import Optional
+import logging
+
 
 router = APIRouter(tags=['Account',])
+log = logging.getLogger(__name__)
 
 @router.get('{id_}', status_code=status.HTTP_200_OK, summary='получение одного аккаунта')
 async def account_by_id(id_: int, manager: DbManagerDep, user_id: getUserFromTokenDep):
@@ -30,7 +34,7 @@ async def create_account(acc: AccInput, manager: DbManagerDep, user_id: getUserF
                                 status_code=status.HTTP_200_OK)
     return acc.resource
 
-@router.delete('', status_code=status.HTTP_200_OK, summary='удаление списка аккаунтов')
+@router.delete('', status_code=status.HTTP_200_OK, summary='удаление всех аккаунтов')
 async def delete_all_accounts(manager: DbManagerDep, user_id: getUserFromTokenDep):
     await manager.delete(model=Account)
 
@@ -39,3 +43,28 @@ async def delete_account_by_id(id_: int, manager: DbManagerDep, user_id: getUser
     await manager.delete(model=Account, ident=id_)
     return id_
 
+@router.delete('', status_code=status.HTTP_200_OK, summary='удаление аккунтов по критерию поиска')
+async def delete_account_by_criteria(ident: str, ident_val: Optional[int], manager: DbManagerDep):
+    await manager.delete(model=Account, ident=ident, ident_val=ident_val)
+
+
+@router.patch('{id_}', status_code=status.HTTP_200_OK, summary='изменения аккаунта по id')
+async def change_account_by_id(id_: int, acc: AccUpdate, manager: DbManagerDep, user_id: getUserFromTokenDep):
+    to_update = dict()
+    if not (acc.resource is None):
+        to_update.update(resource=acc.resource)
+    if not (AccUpdate.password is None):
+        to_update.update(password=acc.password)
+    if to_update:
+        await manager.update(model=Account, **to_update, ident_val=id_)
+
+@router.patch('', status_code=status.HTTP_200_OK, summary='изменение аккаунтов по критериям поиска')
+async def change_account_by_criteria(ident: str, ident_val: Optional[int],
+                                     acc: AccUpdate, manager: DbManagerDep, user_id: getUserFromTokenDep):
+    to_update = dict()
+    if not (acc.resource is None):
+        to_update.update(resource=acc.resource)
+    if not (AccUpdate.password is None):
+        to_update.update(password=acc.password)
+    if to_update:
+        await manager.update(model=Account, **to_update, ident=ident, ident_val=ident_val)

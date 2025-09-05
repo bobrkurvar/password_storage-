@@ -63,9 +63,15 @@ class MyExternalApiForBot:
         return data
 
     @handle_ext_api
-    async def update(self, prefix: str, **kwargs):
-        async with self._session.patch(self._url + prefix, json=kwargs):
-            pass
+    async def update(self, prefix: str, **data):
+        ident = data.get('ident')
+        if ident is None:
+            id_ = data.pop('ident_val', None)
+            async with self._session.patch(self._url + prefix + f'/{id_}', data=data):
+                pass
+        else:
+            async with self._session.patch(self._url + prefix, data=data):
+                pass
 
     @handle_ext_api
     async def login(self, **kwargs):

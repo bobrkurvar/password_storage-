@@ -18,6 +18,8 @@ class Crud:
 
     async def delete(self, model, ident = None, ident_val = None):
         async with self._session.begin() as session:
+            if ident_val:
+                await session.execute(delete(model).where(getattr(model, ident)) == ident_val)
             if ident:
                 for_remove = await session.get(model, ident)
                 await session.delete(for_remove)

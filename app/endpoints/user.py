@@ -27,6 +27,11 @@ async def get_user(_id: int, manager: DbManagerDep):
                                 status_code=status.HTTP_404_NOT_FOUND)
     return user
 
+@router.delete('/{_id}', status_code=status.HTTP_200_OK, summary='удаление пользователя')
+async def delete_user(_id: int, manager: DbManagerDep):
+     return await manager.delete(model=User, ident=_id)
+
+
 
 
 
