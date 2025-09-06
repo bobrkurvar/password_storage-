@@ -8,8 +8,8 @@ class InputUser(StatesGroup):
     sign_up = State()
 
 class InputAccount(StatesGroup):
-    name = State()
-    password = State()
+    params = State()
+    input= State()
 
 class CustomRedisStorage(RedisStorage):
     async def set_data(self, key: StorageKey, data: dict) -> None:

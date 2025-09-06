@@ -7,7 +7,7 @@ from bot.utils.keyboards import get_inline_kb
 from utils.external import MyExternalApiForBot
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
-from aiogram.filters import StateFilter, Command
+from aiogram.filters import StateFilter
 from bot.lexicon import phrases
 from core.security import encrypt, decrypt
 import logging
@@ -20,22 +20,49 @@ log = logging.getLogger(__name__)
 @router.callback_query(StateFilter(default_state), CallbackFactory.filter(F.act.lower()=='create account'))
 async def process_create_account(callback: CallbackQuery, state: FSMContext):
     kb = get_inline_kb('MENU')
-    msg = (await callback.message.edit_text(text=phrases.account_name, reply_markup=kb)).message_id
-    await state.set_state(InputAccount.name)
+    msg = (await callback.message.edit_text(text=phrases.account_params, reply_markup=kb)).message_id
+    await state.set_state(InputAccount.params)
     await state.update_data(msg=msg)
 
-@router.message(StateFilter(InputAccount.name))
-async def process_input_account_name(message: Message, state: FSMContext):
-    await state.update_data(name=message.text)
+@router.message(StateFilter(InputAccount.params))
+async def process_select_account_params(message: Message, state: FSMContext):
+    params_lst = message.text.split()
+    cur_par = params_lst[0]
+    await state.update_data(params_lst=params_lst[1:])
     msg = (await state.get_data()).get('msg')
-    kb = get_inline_kb('MENU')
     try:
         await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
     except TelegramBadRequest:
         pass
-    msg = (await message.answer(text=phrases.account_password, reply_markup=kb)).message_id
-    await state.update_data(msg=msg)
-    await state.set_state(InputAccount.password)
+    kb = get_inline_kb('MENU')
+    msg = (await message.answer(text=f'Введите {cur_par}', reply_markup=kb)).message_id
+    await state.update_data(params_lst=params_lst[1:], msg=msg)
+
+
+# @router.message(StateFilter(InputAccount.name))
+# async def process_input_account_name(message: Message, state: FSMContext):
+#     await state.update_data(name=message.text)
+#     msg = (await state.get_data()).get('msg')
+#     kb = get_inline_kb('MENU')
+#     try:
+#         await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
+#     except TelegramBadRequest:
+#         pass
+#     msg = (await message.answer(text=phrases.account_password, reply_markup=kb)).message_id
+#     await state.update_data(msg=msg)
+#     await state.set_state(InputAccount.password)
+
+# @router.message(StateFilter(InputAccount.input))
+# async def process_input_account_params(message: Message, state: FSMContext,
+#                                        ext_api_manager: MyExternalApiForBot):
+#     data = await state.get_data()
+#     msg = data.get('msg')
+#     params_lst = data.get('params_lst')
+#     if params_lst:
+#         cur_par = params_lst[0]
+#         await ext_api_manager.create(prefix='params')
+#     else:
+
 
 @router.message(StateFilter(InputAccount.password))
 async def process_input_account_password(message: Message, state: FSMContext, ext_api_manager: MyExternalApiForBot):
@@ -78,14 +105,16 @@ async def press_button_accounts(callback: CallbackQuery, ext_api_manager: MyExte
     kb = get_inline_kb('MENU')
     await callback.message.edit_text(text=text, reply_markup=kb)
 
-@router.message(Command(commands=['delete',]))
-async def process_command_delete(message: Message, ext_api_manager: MyExternalApiForBot, state: FSMContext):
-    name = message.get_args()
-    await ext_api_manager.remove(prefix='account', ident='resource', ident_val=name)
-    kb = get_inline_kb('MENU')
-    msg = (await state.get_data()).get('msg')
-    try:
-        await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
-    except TelegramBadRequest:
-        pass
-    await message.answer(text='', reply_markup=kb)
+# @router.message(Command(commands=['delete',]))
+# async def process_command_delete(message: Message, ext_api_manager: MyExternalApiForBot, state: FSMContext):
+#     name = message.get_args()
+#     await ext_api_manager.remove(prefix='account', ident='resource', ident_val=name)
+#     kb = get_inline_kb('MENU')
+#     msg = (await state.get_data()).get('msg')
+#     try:
+#         await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
+#     except TelegramBadRequest:
+#         pass
+#     await message.answer(text='', reply_markup=kb)
+
+
