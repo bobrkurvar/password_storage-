@@ -31,6 +31,7 @@ class Account(Base):
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey('pas_users.id'))
     password: Mapped[str]
     user: Mapped['User'] = relationship('User', back_populates='accounts')
+    params: Mapped[list['ParOfAcc']] = relationship('Account', back_populates='acc')
 
     def __str__(self):
         text = f"id: {self.id}, resource: {self.resource}"
@@ -42,4 +43,22 @@ class Account(Base):
 
     def model_dump(self):
         return {'id': self.id, 'resource': self.resource, 'password': self.password}
+
+class ParOfAcc(Base):
+    __tablename__ = 'params'
+    id : Mapped[int] = mapped_column(primary_key=True, autoincrement=True, default=1)
+    acc_id: Mapped[int] = mapped_column(BigInteger, ForeignKey('accounts.id'))
+    name: Mapped[str]
+    content: Mapped[str]
+
+    def __str__(self):
+        text = f"id: {self.id}, name: {self.name}, content: {self.content}"
+        return text
+
+    def __repr__(self):
+        text = f"id: {self.id}, name: {self.name}, content: {self.content}"
+        return text
+
+    def model_dump(self):
+        return {'id': self.id, 'name': self.name, 'content': self.content}
 
