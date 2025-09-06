@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import select, update, delete
+from typing import Optional
 import logging
 
 
@@ -16,14 +17,14 @@ class Crud:
             session.add(tup)
             return tup.id
 
-    async def delete(self, model, ident = None, ident_val = None):
+    async def delete(self, model, ident: str | None = None, ident_val: Optional[int] = None):
         async with self._session.begin() as session:
-            if ident_val:
+            if not (ident is None):
                 await session.execute(delete(model).where(getattr(model, ident)) == ident_val)
-            if ident:
-                for_remove = await session.get(model, ident)
+            elif ident is None:
+                for_remove = await session.get(model, ident_val)
                 await session.delete(for_remove)
-                return getattr(for_remove, ident)
+                return getattr(for_remove, 'id')
             else:
                 await session.execute(delete(model))
 

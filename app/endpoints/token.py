@@ -13,7 +13,8 @@ router = APIRouter(tags=['Token',])
 log = logging.getLogger(__name__)
 
 
-@router.post('/login', status_code=status.HTTP_200_OK, summary='аутентификация пользователя', response_model=OutputToken)
+@router.post('/login', status_code=status.HTTP_200_OK, summary='аутентификация пользователя',
+             response_model=OutputToken)
 async def login_user(user: Annotated[OAuth2PasswordRequestForm, Depends()], manager: DbManagerDep):
     if user.client_id is None:
         cur = (await manager.read(model=User, ident='username', ident_val=user.username))[0]
@@ -21,8 +22,9 @@ async def login_user(user: Annotated[OAuth2PasswordRequestForm, Depends()], mana
         cur = (await manager.read(model=User, ident='id', ident_val=int(user.client_id)))[0]
     if not cur:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='user not found')
-    log.info(cur.get('password'))
+    log.debug(cur.get('password'))
     if verify(user.password, cur.get('password')):
+        log.debug('client_id: %s', user.client_id)
         access_token = create_access_token({'sub': user.client_id})
         refresh_token = create_refresh_token({'sub': user.client_id})
         return {"access_token": access_token, 'refresh_token': refresh_token}

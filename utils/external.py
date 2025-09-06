@@ -33,13 +33,14 @@ class MyExternalApiForBot:
                 return None
 
     @handle_ext_api
-    async def remove(self, prefix: str, **kwargs):
-        id_ = kwargs.get('ident')
-        if (not (id_ is None)) and (len(kwargs) == 1):
+    async def remove(self, prefix: str, **data):
+        id_ = data.get('ident')
+        ident = data.get('ident')
+        if (not (id_ is None)) and (len(data) == 1):
             async with self._session.delete(self._url + prefix + f'/{id_}'):
                 pass
         else:
-            async with self._session.delete(self._url + prefix, params=kwargs):
+            async with self._session.delete(self._url + prefix, params=data):
                 pass
 
     @handle_ext_api

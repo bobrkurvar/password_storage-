@@ -10,10 +10,12 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from cryptography.fernet import Fernet
 import base64, os
+import logging
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 secret_key = conf.secret_key
 algorithm = conf.algorithm
+log = logging.getLogger(__name__)
 
 def get_password_hash(password: str) -> str:
     hash_password = bcrypt.hash(password)
@@ -49,6 +51,7 @@ def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
         payload = jwt.decode(token, secret_key, algorithms=algorithm)
         user_id = payload.get("sub")
         if user_id is None:
+            log.debug('user_id is None')
             raise invalid_credentials_exception
     except jwt.ExpiredSignatureError:
         raise expire_credentials_exception

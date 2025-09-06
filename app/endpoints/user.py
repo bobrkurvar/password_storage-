@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, HTTPException
+from fastapi import APIRouter, status
 from app.endpoints.schemas.user import UserInput
 from sqlalchemy.exc import IntegrityError
 from app.exceptions.custom_errors import CustomDbException
@@ -29,7 +29,8 @@ async def get_user(_id: int, manager: DbManagerDep):
 
 @router.delete('/{_id}', status_code=status.HTTP_200_OK, summary='удаление пользователя')
 async def delete_user(_id: int, manager: DbManagerDep):
-     return await manager.delete(model=User, ident=_id)
+     return await manager.delete(model=User, ident_val=_id)
+
 
 
 
