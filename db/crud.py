@@ -15,6 +15,7 @@ class Crud:
         async with self._session.begin() as session:
             tup = model(**kwargs)
             session.add(tup)
+            await session.flush()
             return tup.id
 
     async def delete(self, model, ident: str | None = None, ident_val: Optional[int] = None):
