@@ -1,10 +1,11 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, join
 from typing import Optional
 import logging
 
 
 log = logging.getLogger(__name__)
+
 
 class Crud:
     def __init__(self, url):
@@ -18,31 +19,52 @@ class Crud:
             await session.flush()
             return tup.id
 
-    async def delete(self, model, ident: str | None = None, ident_val: Optional[int] = None):
+    async def delete(
+        self, model, ident: str | None = None, ident_val: Optional[int] = None
+    ):
         async with self._session.begin() as session:
             if not (ident is None):
-                await session.execute(delete(model).where(getattr(model, ident)) == ident_val)
+                await session.execute(
+                    delete(model).where(getattr(model, ident)) == ident_val
+                )
             elif ident is None:
                 for_remove = await session.get(model, ident_val)
                 await session.delete(for_remove)
-                return getattr(for_remove, 'id')
+                return getattr(for_remove, "id")
             else:
                 await session.execute(delete(model))
 
-
     async def update(self, model, ident: str, ident_val: int, **kwargs):
         async with self._session.begin() as session:
-            query = update(model).where(getattr(model, ident) == ident_val).values(**kwargs)
+            query = (
+                update(model).where(getattr(model, ident) == ident_val).values(**kwargs)
+            )
             await session.execute(query)
 
-    async def read(self, model, ident: str | None = None, ident_val: int | None = None, limit: int | None = None, offset: int | None = None,
-                   order_by: str | None = None):
+    async def read(
+        self,
+        model,
+        ident: str | None = None,
+        ident_val: int | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+        order_by: str | None = None,
+        to_join: str | None = None,
+    ):
         async with self._session.begin() as session:
             query = select(model)
+            if to_join:
+                joined_table = getattr(model, to_join)
+                query = query.join(joined_table)
             if ident:
-                query = query.where(getattr(model, ident) == ident_val)
+                if to_join:
+                    query = query.where(
+                        getattr(joined_table.property.mapper.class_, ident) == ident_val
+                    )
+                else:
+                    query = query.where(getattr(model, ident) == ident_val)
             if order_by:
-                log.debug('сортировка по %s', order_by)
+                log.debug("сортировка по %s", order_by)
                 query = query.order_by(getattr(model, order_by))
             if offset:
                 query = query.offset(offset)
@@ -53,5 +75,3 @@ class Crud:
 
     async def close_and_dispose(self):
         await self._engine.dispose()
-
-
