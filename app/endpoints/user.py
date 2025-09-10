@@ -1,41 +1,87 @@
-from fastapi import APIRouter, status
-from app.endpoints.schemas.user import UserInput
-from sqlalchemy.exc import IntegrityError
-from app.exceptions.custom_errors import CustomDbException
-from db import DbManagerDep
-from db.models import User
 import logging
 
+from fastapi import APIRouter, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 
-router = APIRouter(tags=['User',])
+from app.endpoints.schemas.user import UserInput, UserOutput
+from app.exceptions.schemas import ErrorResponse
+from db import DbManagerDep
+from db.models import User
+
+router = APIRouter(
+    tags=["User"],
+    responses={
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "detail": "Unexpected error",
+            "model": ErrorResponse,
+        },
+    },
+)
 log = logging.getLogger(__name__)
 
-@router.post('', status_code=status.HTTP_201_CREATED, summary='создание пользователя')
-async def user_register(user: UserInput, manager: DbManagerDep):
-    try:
-        user_id = await manager.create(model=User, **user.model_dump())
-    except IntegrityError:
-        raise CustomDbException(message='ошибка целостности бд', detail='пользователь с данным id уже существует',
-                                status_code=status.HTTP_200_OK)
-    return user_id
 
-@router.get('/{_id}', status_code=status.HTTP_200_OK, summary='чтение пользователя')
-async def get_user(_id: int, manager: DbManagerDep):
-    user = await manager.read(model=User, ident='id', ident_val=_id)
-    if user is None:
-        raise CustomDbException(message='пользователь с таким id не существует', detail=f'пользователя с id {_id} нет в базе',
-                                status_code=status.HTTP_404_NOT_FOUND)
+@router.post(
+    "",
+    status_code=status.HTTP_201_CREATED,
+    summary="создание пользователя",
+    response_model=UserOutput,
+    responses={
+        status.HTTP_409_CONFLICT: {
+            "detail": "Пользователь с таким id уже существует",
+            "model": ErrorResponse,
+        },
+    },
+)
+async def user_create(user: UserInput, manager: DbManagerDep):
+    try:
+        await manager.create(model=User, **user.model_dump())
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Пользователь с таким id уже существует",
+        )
     return user
 
-@router.delete('/{_id}', status_code=status.HTTP_200_OK, summary='удаление пользователя')
+
+@router.get(
+    "/{_id}",
+    status_code=status.HTTP_200_OK,
+    summary="чтение пользователя",
+    response_model=UserOutput,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "detail": "Пользователь не найден",
+            "model": ErrorResponse,
+        }
+    },
+)
+async def get_user(_id: int, manager: DbManagerDep):
+    user = await manager.read(model=User, ident="id", ident_val=_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="пользователь с таким id не существует",
+        )
+    return user
+
+
+@router.delete(
+    "/{_id}",
+    status_code=status.HTTP_200_OK,
+    summary="удаление пользователя",
+    response_model=UserOutput,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "detail": "Пользователь не найден",
+            "model": ErrorResponse,
+        }
+    },
+)
 async def delete_user(_id: int, manager: DbManagerDep):
-     return await manager.delete(model=User, ident_val=_id)
-
-
-
-
-
-
-
-
-
+    user = await manager.delete(model=User, ident_val=_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="пользователь с таким id не существует",
+        )
+    return user

@@ -1,13 +1,18 @@
-from pydantic import BaseModel, Field
 from typing import Optional
+
+from pydantic import BaseModel, Field
+
 
 class UserInput(BaseModel):
     id: int | None = None
     password: str
     username: str
 
-class OutputUser(BaseModel):
-    id: int | str
+
+class UserOutput(BaseModel):
+    username: str
+    id: int
+
 
 class OutputToken(BaseModel):
     access_token: str

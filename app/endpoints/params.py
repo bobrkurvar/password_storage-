@@ -1,9 +1,12 @@
-from fastapi import APIRouter, status, Depends
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from app.endpoints.schemas.account import ParamsInput, ParamsOutput
+from app.exceptions.schemas import ErrorResponse
 from core.security import get_user_from_token
-from db.models import ParOfAcc
-from app.endpoints.schemas.account import ParamsInput
 from db import DbManagerDep
-from typing import Optional
+from db.models import ParOfAcc
 
 router = APIRouter(tags=["Params of account"])
 
@@ -13,9 +16,21 @@ router = APIRouter(tags=["Params of account"])
     dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="чтение параметра по id",
+    response_model=ParamsOutput,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "detail": "Параметра с таким id нет",
+            "model": ErrorResponse,
+        }
+    },
 )
 async def get_param_by_id(id_: int, manager: DbManagerDep):
-    param = (await manager.read(model=ParOfAcc, ident_val=id_))[0]
+    params = await manager.read(model=ParOfAcc, ident_val=id_)
+    if params in None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Параметра с таким id нет"
+        )
+    param = params[0]
     return param
 
 
@@ -23,17 +38,29 @@ async def get_param_by_id(id_: int, manager: DbManagerDep):
     "",
     dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
-    summary="чтение параметров по критериям поиска",
+    summary="Чтение параметров по критериям поиска",
+    response_model=List[ParamsOutput],
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "detail": "Параметров с таким критерием нет",
+            "model": ErrorResponse,
+        }
+    },
 )
-async def get_param_by_id(
+async def get_param_by_criteria(
     ident: str,
-    ident_val: Optional[int | str],
+    ident_val: int | str | None,
     manager: DbManagerDep,
     to_join: str | None = None,
 ):
     params = await manager.read(
         model=ParOfAcc, ident=ident, ident_val=int(ident_val), to_join=to_join
     )
+    if params is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Параметров с таким {ident} нет",
+        )
     return params
 
 
@@ -41,7 +68,7 @@ async def get_param_by_id(
     "",
     dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
-    summary="создание параметров для аккаунта",
+    summary="Создание параметров для аккаунта",
 )
 async def create_account_params(items: ParamsInput, manager: DbManagerDep):
     for param in items.items:
