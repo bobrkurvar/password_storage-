@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from .core_lexicon import COMMAND_CORE, AUTHENTICATION, ACCOUNT
+
+from .core_lexicon import ACCOUNT, AUTHENTICATION, COMMAND_CORE
 
 
 class Phrases(BaseModel):

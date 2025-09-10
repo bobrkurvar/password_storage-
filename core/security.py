@@ -1,40 +1,56 @@
+import base64
+import logging
+import os
+from datetime import datetime, timedelta, timezone
+from typing import Annotated
+
 import jwt
+from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from fastapi import Depends, HTTPException, status
 from fastapi.security.oauth2 import OAuth2PasswordBearer
 from passlib.hash import bcrypt
-from typing import Annotated
-from fastapi import Depends, HTTPException, status
+
 from core import conf
-from datetime import timedelta, datetime, timezone
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.backends import default_backend
-from cryptography.fernet import Fernet
-import base64, os
-import logging
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 secret_key = conf.secret_key
 algorithm = conf.algorithm
 log = logging.getLogger(__name__)
 
+
 def get_password_hash(password: str) -> str:
     hash_password = bcrypt.hash(password)
     return hash_password
 
+
 def verify(plain_password: str, password_hash: str) -> bool:
     return bcrypt.verify(plain_password, password_hash)
 
+
 def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + expires_delta if expires_delta else datetime.now(timezone.utc) + timedelta(minutes=15)
+    expire = (
+        datetime.now(timezone.utc) + expires_delta
+        if expires_delta
+        else datetime.now(timezone.utc) + timedelta(minutes=15)
+    )
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, secret_key, algorithm)
 
+
 def create_refresh_token(data: dict, expires_delta: timedelta = None) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + expires_delta if expires_delta else datetime.now(timezone.utc) + timedelta(days=7)
+    expire = (
+        datetime.now(timezone.utc) + expires_delta
+        if expires_delta
+        else datetime.now(timezone.utc) + timedelta(days=7)
+    )
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, secret_key, algorithm)
+
 
 def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
     invalid_credentials_exception = HTTPException(
@@ -51,7 +67,7 @@ def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
         payload = jwt.decode(token, secret_key, algorithms=algorithm)
         user_id = payload.get("sub")
         if user_id is None:
-            log.debug('user_id is None')
+            log.debug("user_id is None")
             raise invalid_credentials_exception
     except jwt.ExpiredSignatureError:
         raise expire_credentials_exception
@@ -59,18 +75,21 @@ def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
         raise invalid_credentials_exception
     return user_id
 
+
 getUserFromTokenDep = Annotated[int, Depends(get_user_from_token)]
+
 
 # 1. Из пароля делаем ключ
 def derive_key(password: str, salt: bytes) -> bytes:
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),  # используем SHA-256
-        length=32,                  # длина ключа = 32 байта (256 бит)
-        salt=salt,                  # соль (16 байт случайных данных)
-        iterations=100_000,         # количество итераций (чем больше, тем медленнее brute-force)
-        backend=default_backend()
+        length=32,  # длина ключа = 32 байта (256 бит)
+        salt=salt,  # соль (16 байт случайных данных)
+        iterations=100_000,  # количество итераций (чем больше, тем медленнее brute-force)
+        backend=default_backend(),
     )
     return base64.urlsafe_b64encode(kdf.derive(password.encode()))
+
 
 # 2. Шифрование
 def encrypt(data: str, password: str) -> bytes:
@@ -79,6 +98,7 @@ def encrypt(data: str, password: str) -> bytes:
     f = Fernet(key)
     encrypted = f.encrypt(data.encode())
     return salt + encrypted  # соль приклеиваем к началу, чтобы не хранить отдельно
+
 
 # 3. Расшифрование
 def decrypt(token: bytes, password: str) -> str:

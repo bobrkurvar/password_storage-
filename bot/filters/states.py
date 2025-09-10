@@ -1,15 +1,19 @@
-from aiogram.fsm.state import StatesGroup, State
+from typing import Optional
+
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.base import StorageKey
 from aiogram.fsm.storage.redis import RedisStorage
-from typing import Optional
+
 
 class InputUser(StatesGroup):
     sign_in = State()
     sign_up = State()
 
+
 class InputAccount(StatesGroup):
     params = State()
-    input= State()
+    input = State()
+
 
 class CustomRedisStorage(RedisStorage):
     async def set_data(self, key: StorageKey, data: dict) -> None:
@@ -19,7 +23,9 @@ class CustomRedisStorage(RedisStorage):
         if self.state_ttl:
             await self.redis.expire(data_key, self.state_ttl)
 
-    async def set_token(self, key: StorageKey, token_name: str, token_value: str, ttl: int):
+    async def set_token(
+        self, key: StorageKey, token_name: str, token_value: str, ttl: int
+    ):
         data_key = f"fsm:{key.user_id}:{key.chat_id}:{token_name}"
         await self.redis.set(data_key, token_value)
         await self.redis.expire(data_key, ttl)
@@ -27,9 +33,11 @@ class CustomRedisStorage(RedisStorage):
     async def get_token(self, key: StorageKey, token_name: str) -> str | None:
         data_key = f"fsm:{key.user_id}:{key.chat_id}:{token_name}"
         token = await self.redis.get(data_key)
-        return token.decode('utf-8') if token else None
+        return token.decode("utf-8") if token else None
 
-    async def update_data(self, key: StorageKey, data: dict, *, ttl: Optional[int] = None):
+    async def update_data(
+        self, key: StorageKey, data: dict, *, ttl: Optional[int] = None
+    ):
         # забираем ttl из данных, если он там оказался
         ttl = ttl or data.pop("ttl", None)
 

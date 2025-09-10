@@ -1,7 +1,7 @@
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.types import BigInteger
 from sqlalchemy import ForeignKey
+from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.types import BigInteger
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -70,6 +70,4 @@ class ParOfAcc(Base):
             "id": self.id,
             "name": self.name,
             "content": self.content,
-            "secret": self.secret,
-            "acc_id": self.acc_id,
         }

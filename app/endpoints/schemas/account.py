@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AccInput(BaseModel):
@@ -16,11 +16,23 @@ class AccUpdate(BaseModel):
     password: str | None = None
 
 
+class ParamItem(BaseModel):
+    id: int
+    name: str
+    content: int | str
+
+
 class ParamsInput(BaseModel):
     acc_id: int
-    items: List[Dict[str, Any]]
-
-
-class ParamsOutput(BaseModel):
-    acc_id: int
-    items: List[Dict[str, Any]]
+    items: List[ParamItem]
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "acc_id": 123,
+                "items": [
+                    {"id": 1, "name": "item1", "content": 10},
+                    {"id": 2, "name": "item2", "content": 20},
+                ],
+            }
+        }
+    }

@@ -1,8 +1,8 @@
-from typing import List
+from typing import Annotated, List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 
-from app.endpoints.schemas.account import ParamsInput, ParamsOutput
+from app.endpoints.schemas.account import ParamItem, ParamsInput
 from app.exceptions.schemas import ErrorResponse
 from core.security import get_user_from_token
 from db import DbManagerDep
@@ -16,7 +16,7 @@ router = APIRouter(tags=["Params of account"])
     dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="чтение параметра по id",
-    response_model=ParamsOutput,
+    response_model=ParamItem,
     responses={
         status.HTTP_404_NOT_FOUND: {
             "detail": "Параметра с таким id нет",
@@ -39,7 +39,7 @@ async def get_param_by_id(id_: int, manager: DbManagerDep):
     dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="Чтение параметров по критериям поиска",
-    response_model=List[ParamsOutput],
+    response_model=List[ParamItem],
     responses={
         status.HTTP_404_NOT_FOUND: {
             "detail": "Параметров с таким критерием нет",
@@ -70,7 +70,7 @@ async def get_param_by_criteria(
     status_code=status.HTTP_200_OK,
     summary="Создание параметров для аккаунта",
 )
-async def create_account_params(items: ParamsInput, manager: DbManagerDep):
+async def create_account_params(manager: DbManagerDep, items: ParamsInput):
     for param in items.items:
         param.update(acc_id=items.acc_id)
         await manager.create(model=ParOfAcc, **param)

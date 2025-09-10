@@ -1,18 +1,19 @@
-from aiogram import Router, F
-from bot.filters import CallbackFactory
-from bot.filters.states import InputAccount
-from aiogram.types import CallbackQuery, Message
+import base64
+import logging
+
+from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
-from bot.utils.keyboards import get_inline_kb
-from utils.external import MyExternalApiForBot
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
-from aiogram.filters import StateFilter
-from bot.lexicon import phrases
-from core.security import encrypt, decrypt
-import logging
-import base64
+from aiogram.types import CallbackQuery, Message
 
+from bot.filters import CallbackFactory
+from bot.filters.states import InputAccount
+from bot.lexicon import phrases
+from bot.utils.keyboards import get_inline_kb
+from core.security import decrypt, encrypt
+from utils.external import MyExternalApiForBot
 
 router = Router()
 log = logging.getLogger(__name__)
