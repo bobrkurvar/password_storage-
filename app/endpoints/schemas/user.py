@@ -11,6 +11,7 @@ class UserInput(BaseModel):
 
 class UserOutput(BaseModel):
     username: str
+    password: str
     id: int
 
 

@@ -37,15 +37,15 @@ class Account(Base):
     )
 
     def __str__(self):
-        text = f"id: {self.id}"
+        text = f"id: {self.id}, {self.user_id}"
         return text
 
     def __repr__(self):
-        text = f"id: {self.id}"
+        text = f"id: {self.id}, {self.user_id}"
         return text
 
     def model_dump(self):
-        return {"id": self.id}
+        return {"id": self.id, 'user_id': self.user_id}
 
 
 class ParOfAcc(Base):

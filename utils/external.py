@@ -17,13 +17,20 @@ def handle_ext_api(func):
 
     return wrapper
 
+def add_exception_handler(cls):
+    api_methods = ['create', 'remove', 'read', 'update', 'login', 'refresh']
+    for attr_name in dir(cls):
+        attr = getattr(cls, attr_name)
+        if attr in api_methods:
+            setattr(cls, attr_name, handle_ext_api(attr))
+    return cls
 
+@add_exception_handler
 class MyExternalApiForBot:
     def __init__(self, url):
         self._url = url
         self._session = None
 
-    @handle_ext_api
     async def create(self, prefix: str, **data):
         try:
             headers = {"Authorization": f"Bearer {data.pop('access_token')}"}
@@ -38,10 +45,8 @@ class MyExternalApiForBot:
             except ClientResponseError:
                 return None
 
-    @handle_ext_api
     async def remove(self, prefix: str, **data):
         id_ = data.get("ident")
-        ident = data.get("ident")
         if (not (id_ is None)) and (len(data) == 1):
             async with self._session.delete(self._url + prefix + f"/{id_}"):
                 pass
@@ -49,7 +54,6 @@ class MyExternalApiForBot:
             async with self._session.delete(self._url + prefix, params=data):
                 pass
 
-    @handle_ext_api
     async def read(self, prefix: str, **data):
         id_ = data.get("ident_val")
         try:
@@ -73,7 +77,6 @@ class MyExternalApiForBot:
             return None
         return data
 
-    @handle_ext_api
     async def update(self, prefix: str, **data):
         ident = data.get("ident")
         if ident is None:
@@ -84,7 +87,6 @@ class MyExternalApiForBot:
             async with self._session.patch(self._url + prefix, data=data):
                 pass
 
-    @handle_ext_api
     async def login(self, **kwargs):
         async with self._session.post(self._url + "login", data=kwargs) as resp:
             tokens = await resp.json()
@@ -92,7 +94,6 @@ class MyExternalApiForBot:
             refresh_token = tokens.get("refresh_token")
         return {"access_token": access_token, "refresh_token": refresh_token}
 
-    @handle_ext_api
     async def refresh(self, refresh_token: str):
         headers = {"Authorization": f"Bearer {refresh_token}"}
         async with self._session.post(self._url + "refresh", headers=headers) as resp:

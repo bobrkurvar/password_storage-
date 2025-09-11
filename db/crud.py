@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import List, Any
 
 from sqlalchemy import delete, join, select, update
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -8,21 +8,30 @@ log = logging.getLogger(__name__)
 
 
 class Crud:
+    _engine = None
+    _session_factory = None
     def __init__(self, url):
-        self._engine = create_async_engine(url)
-        self._session = async_sessionmaker(self._engine)
+        if self.__class__._engine is None:
+            self.__class__._engine = create_async_engine(url)
+        if self.__class__._session_factory is None:
+            self.__class__._session_factory = async_sessionmaker(self._engine)
 
-    async def create(self, model, **kwargs):
-        async with self._session.begin() as session:
-            tup = model(**kwargs)
-            session.add(tup)
+    async def create(self, model, seq_data: List[Any], **kwargs):
+        async with self._session_factory.begin() as session:
+            if seq_data:
+                for data in seq_data:
+                    tup = model(**data)
+                    session.add(tup)
+            else:
+                tup = model(**kwargs)
+                session.add(tup)
             await session.flush()
-            return tup.id
+            return tup.model_dump()
 
     async def delete(
-        self, model, ident: str | None = None, ident_val: Optional[int] = None
+        self, model, ident: str | None = None, ident_val: int | None = None
     ):
-        async with self._session.begin() as session:
+        async with self._session_factory.begin() as session:
             if not (ident is None):
                 await session.execute(
                     delete(model).where(getattr(model, ident)) == ident_val
@@ -35,7 +44,7 @@ class Crud:
                 await session.execute(delete(model))
 
     async def update(self, model, ident: str, ident_val: int, **kwargs):
-        async with self._session.begin() as session:
+        async with self._session_factory.begin() as session:
             query = (
                 update(model).where(getattr(model, ident) == ident_val).values(**kwargs)
             )
@@ -51,7 +60,7 @@ class Crud:
         order_by: str | None = None,
         to_join: str | None = None,
     ):
-        async with self._session.begin() as session:
+        async with self._session_factory.begin() as session:
             query = select(model)
             if to_join:
                 joined_table = getattr(model, to_join)
@@ -74,4 +83,5 @@ class Crud:
             return [r.model_dump() for r in res]
 
     async def close_and_dispose(self):
+        log.debug('подключение к движку %s закрывается', self._engine)
         await self._engine.dispose()

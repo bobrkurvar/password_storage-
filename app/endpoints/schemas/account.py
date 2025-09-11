@@ -8,6 +8,7 @@ class AccInput(BaseModel):
 
 
 class AccOutput(BaseModel):
+    id: int
     user_id: int
 
 
@@ -17,22 +18,24 @@ class AccUpdate(BaseModel):
 
 
 class ParamItem(BaseModel):
-    id: int
+    acc_id: int
     name: str
     content: int | str
+    secret: bool
 
 
-class ParamsInput(BaseModel):
-    acc_id: int
-    items: List[ParamItem]
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "acc_id": 123,
-                "items": [
-                    {"id": 1, "name": "item1", "content": 10},
-                    {"id": 2, "name": "item2", "content": 20},
-                ],
-            }
-        }
-    }
+
+# class ParamsInput(BaseModel):
+#     acc_id: int
+#     items: List[ParamItem]
+#     model_config = {
+#         "json_schema_extra": {
+#             "example": {
+#                 "acc_id": 123,
+#                 "items": [
+#                     {"id": 1, "name": "item1", "content": 10},
+#                     {"id": 2, "name": "item2", "content": 20},
+#                 ],
+#             }
+#         }
+#     }

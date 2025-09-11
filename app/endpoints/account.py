@@ -66,6 +66,7 @@ async def accounts_list(user_id: getUserFromTokenDep, manager: DbManagerDep):
         raise HTTPException(
             detail="Список задач пуст", status_code=status.HTTP_404_NOT_FOUND
         )
+    log.debug('accounts list: %s', acc_lst)
     return acc_lst
 
 
@@ -84,14 +85,14 @@ async def accounts_list(user_id: getUserFromTokenDep, manager: DbManagerDep):
 )
 async def create_account(acc: AccInput, manager: DbManagerDep):
     try:
-        acc_id = await manager.create(model=Account, **acc.model_dump())
-        log.debug("returning acc_id: %s", acc_id)
+        acc_from_db = await manager.create(model=Account, **acc.model_dump())
+        log.debug("returning acc: %s, %s", acc_from_db.get('id'), acc_from_db.get('user_id'))
     except IntegrityError:
         raise HTTPException(
             detail="Аккаунт с данным id уже существует",
             status_code=status.HTTP_409_CONFLICT,
         )
-    return acc_id
+    return acc_from_db
 
 
 @router.delete(

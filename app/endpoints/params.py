@@ -1,15 +1,16 @@
-from typing import Annotated, List
+import logging
+from typing import List
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.endpoints.schemas.account import ParamItem, ParamsInput
+from app.endpoints.schemas.account import ParamItem
 from app.exceptions.schemas import ErrorResponse
 from core.security import get_user_from_token
 from db import DbManagerDep
 from db.models import ParOfAcc
 
 router = APIRouter(tags=["Params of account"])
-
+log = logging.getLogger(__name__)
 
 @router.get(
     "{id_}",
@@ -69,8 +70,8 @@ async def get_param_by_criteria(
     dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="Создание параметров для аккаунта",
+    response_model=List[ParamItem]
 )
-async def create_account_params(manager: DbManagerDep, items: ParamsInput):
-    for param in items.items:
-        param.update(acc_id=items.acc_id)
-        await manager.create(model=ParOfAcc, **param)
+async def create_account_params(manager: DbManagerDep, items: List[ParamItem]):
+    params = [item.model_dump() for item in items]
+    await manager.create(model=ParOfAcc, seq_data=params)
