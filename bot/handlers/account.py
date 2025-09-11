@@ -83,8 +83,8 @@ async def process_select_account_params(
                 await ext_api_manager.create(
                     prefix="account/params",
                     access_token=access_token,
-                    acc_id=acc_id,
-                    items=params_dict_lst,
+                    acc_id = acc_id,
+                    items = params_dict_lst,
                 )
                 data.pop("params_dict_lst")
     try:

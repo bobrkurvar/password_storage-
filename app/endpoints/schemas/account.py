@@ -17,11 +17,20 @@ class AccUpdate(BaseModel):
     password: str | None = None
 
 
-class ParamItem(BaseModel):
+class ParamOutput(BaseModel):
     acc_id: int
     name: str
     content: int | str
     secret: bool
+
+class ParamItem(BaseModel):
+    name: str
+    content: int | str
+    secret: bool
+
+class ParamInput(BaseModel):
+    acc_id: int
+    items: List[ParamItem]
 
 
 

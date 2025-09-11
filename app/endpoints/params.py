@@ -3,7 +3,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.endpoints.schemas.account import ParamItem
+from app.endpoints.schemas.account import ParamOutput, ParamInput
 from app.exceptions.schemas import ErrorResponse
 from core.security import get_user_from_token
 from db import DbManagerDep
@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
     dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="чтение параметра по id",
-    response_model=ParamItem,
+    response_model=ParamOutput,
     responses={
         status.HTTP_404_NOT_FOUND: {
             "detail": "Параметра с таким id нет",
@@ -40,7 +40,7 @@ async def get_param_by_id(id_: int, manager: DbManagerDep):
     dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="Чтение параметров по критериям поиска",
-    response_model=List[ParamItem],
+    response_model=List[ParamOutput],
     responses={
         status.HTTP_404_NOT_FOUND: {
             "detail": "Параметров с таким критерием нет",
@@ -70,8 +70,11 @@ async def get_param_by_criteria(
     dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="Создание параметров для аккаунта",
-    response_model=List[ParamItem]
+    response_model=List[ParamOutput]
 )
-async def create_account_params(manager: DbManagerDep, items: List[ParamItem]):
-    params = [item.model_dump() for item in items]
-    await manager.create(model=ParOfAcc, seq_data=params)
+async def create_account_params(manager: DbManagerDep, params: ParamInput):
+    params_dict = [item.model_dump() for item in params.items]
+    [i.update(acc_id=params.acc_id) for i in params_dict]
+    log.debug('params_dict: %s', params_dict)
+    response = await manager.create(model=ParOfAcc, seq_data=params_dict)
+    return response

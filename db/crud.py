@@ -16,17 +16,19 @@ class Crud:
         if self.__class__._session_factory is None:
             self.__class__._session_factory = async_sessionmaker(self._engine)
 
-    async def create(self, model, seq_data: List[Any], **kwargs):
+    async def create(self, model, seq_data: List[Any] | None = None, **kwargs):
         async with self._session_factory.begin() as session:
             if seq_data:
-                for data in seq_data:
-                    tup = model(**data)
-                    session.add(tup)
+                log.debug('создание нескольких объектов')
+                tup_lst = [model(**new_data) for new_data in seq_data]
+                session.add_all(tup_lst)
+                await session.flush()
+                return tup_lst
             else:
                 tup = model(**kwargs)
                 session.add(tup)
-            await session.flush()
-            return tup.model_dump()
+                await session.flush()
+                return tup.model_dump()
 
     async def delete(
         self, model, ident: str | None = None, ident_val: int | None = None

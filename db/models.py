@@ -68,6 +68,8 @@ class ParOfAcc(Base):
     def model_dump(self):
         return {
             "id": self.id,
+            "acc_id": self.acc_id,
+            "secret": self.secret,
             "name": self.name,
             "content": self.content,
         }
