@@ -58,7 +58,7 @@ async def process_select_account_params(
                         prefix="user", ident_val=message.from_user.id
                     )
                 ).get("password")
-                log.debug('Master Password: %s', master_password)
+                log.debug("Master Password: %s", master_password)
                 content = base64.urlsafe_b64encode(
                     encrypt(message.text, master_password)
                 ).decode()
@@ -73,18 +73,20 @@ async def process_select_account_params(
             else:
                 data.pop("params_lst")
                 access_token = await state.storage.get_token(state.key, "access_token")
-                acc_id = (await ext_api_manager.create(
-                    prefix="account",
-                    access_token=access_token,
-                    user_id=message.from_user.id,
-                )).get('id')
+                acc_id = (
+                    await ext_api_manager.create(
+                        prefix="account",
+                        access_token=access_token,
+                        user_id=message.from_user.id,
+                    )
+                ).get("id")
                 log.debug("params: %s", params_dict_lst)
-                log.debug('acc_id: %s', acc_id)
+                log.debug("acc_id: %s", acc_id)
                 await ext_api_manager.create(
                     prefix="account/params",
                     access_token=access_token,
-                    acc_id = acc_id,
-                    items = params_dict_lst,
+                    acc_id=acc_id,
+                    items=params_dict_lst,
                 )
                 data.pop("params_dict_lst")
     try:

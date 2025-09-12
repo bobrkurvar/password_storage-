@@ -23,15 +23,16 @@ class ParamOutput(BaseModel):
     content: int | str
     secret: bool
 
+
 class ParamItem(BaseModel):
     name: str
     content: int | str
     secret: bool
 
+
 class ParamInput(BaseModel):
     acc_id: int
     items: List[ParamItem]
-
 
 
 # class ParamsInput(BaseModel):

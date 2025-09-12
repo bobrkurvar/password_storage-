@@ -3,7 +3,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.endpoints.schemas.account import ParamOutput, ParamInput
+from app.endpoints.schemas.account import ParamInput, ParamOutput
 from app.exceptions.schemas import ErrorResponse
 from core.security import get_user_from_token
 from db import DbManagerDep
@@ -11,6 +11,7 @@ from db.models import ParOfAcc
 
 router = APIRouter(tags=["Params of account"])
 log = logging.getLogger(__name__)
+
 
 @router.get(
     "{id_}",
@@ -70,11 +71,11 @@ async def get_param_by_criteria(
     dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="Создание параметров для аккаунта",
-    response_model=List[ParamOutput]
+    response_model=List[ParamOutput],
 )
 async def create_account_params(manager: DbManagerDep, params: ParamInput):
     params_dict = [item.model_dump() for item in params.items]
     [i.update(acc_id=params.acc_id) for i in params_dict]
-    log.debug('params_dict: %s', params_dict)
+    log.debug("params_dict: %s", params_dict)
     response = await manager.create(model=ParOfAcc, seq_data=params_dict)
     return response

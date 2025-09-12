@@ -1,14 +1,14 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Request, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 from redis.asyncio import Redis
 
 from app.endpoints import main_router
-from db import get_db_manager
 from app.exceptions.handlers import exception_handler_to_error_response
+from db import get_db_manager
 
 
 @asynccontextmanager
@@ -37,5 +37,5 @@ async def log_requests(request: Request, call_next):
 
 
 app.include_router(main_router)
-#app.add_exception_handler(HTTPException, exception_handler_to_error_response)
-#app.add_exception_handler(Exception, global_exception_handler)
+# app.add_exception_handler(HTTPException, exception_handler_to_error_response)
+# app.add_exception_handler(Exception, global_exception_handler)

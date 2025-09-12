@@ -1,5 +1,5 @@
 import logging
-from typing import List, Any
+from typing import Any, List
 
 from sqlalchemy import delete, join, select, update
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -10,6 +10,7 @@ log = logging.getLogger(__name__)
 class Crud:
     _engine = None
     _session_factory = None
+
     def __init__(self, url):
         if self.__class__._engine is None:
             self.__class__._engine = create_async_engine(url)
@@ -19,7 +20,7 @@ class Crud:
     async def create(self, model, seq_data: List[Any] | None = None, **kwargs):
         async with self._session_factory.begin() as session:
             if seq_data:
-                log.debug('создание нескольких объектов')
+                log.debug("создание нескольких объектов")
                 tup_lst = [model(**new_data) for new_data in seq_data]
                 session.add_all(tup_lst)
                 await session.flush()
@@ -85,5 +86,5 @@ class Crud:
             return [r.model_dump() for r in res]
 
     async def close_and_dispose(self):
-        log.debug('подключение к движку %s закрывается', self._engine)
+        log.debug("подключение к движку %s закрывается", self._engine)
         await self._engine.dispose()

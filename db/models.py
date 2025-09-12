@@ -45,7 +45,7 @@ class Account(Base):
         return text
 
     def model_dump(self):
-        return {"id": self.id, 'user_id': self.user_id}
+        return {"id": self.id, "user_id": self.user_id}
 
 
 class ParOfAcc(Base):

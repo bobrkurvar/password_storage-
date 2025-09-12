@@ -17,13 +17,15 @@ def handle_ext_api(func):
 
     return wrapper
 
+
 def add_exception_handler(cls):
-    api_methods = ['create', 'remove', 'read', 'update', 'login', 'refresh']
+    api_methods = ["create", "remove", "read", "update", "login", "refresh"]
     for attr_name in dir(cls):
         attr = getattr(cls, attr_name)
         if attr in api_methods:
             setattr(cls, attr_name, handle_ext_api(attr))
     return cls
+
 
 @add_exception_handler
 class MyExternalApiForBot:

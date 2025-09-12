@@ -57,7 +57,7 @@ async def user_create(user: UserInput, manager: DbManagerDep):
 )
 async def get_user(_id: int, manager: DbManagerDep):
     user = (await manager.read(model=User, ident="id", ident_val=_id))[0]
-    log.debug('Пользователь получен %s, %s', user.get('id'), user.get('username'))
+    log.debug("Пользователь получен %s, %s", user.get("id"), user.get("username"))
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
