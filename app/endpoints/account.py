@@ -8,7 +8,7 @@ from app.endpoints.schemas.account import AccInput, AccOutput, AccUpdate
 from app.exceptions.schemas import ErrorResponse
 from core.security import get_user_from_token, getUserFromTokenDep
 from db import DbManagerDep
-from db.models import Account
+from db.models import Account, ParOfAcc
 
 router = APIRouter(
     tags=["Account"],
@@ -186,3 +186,16 @@ async def delete_account_by_criteria(
 #         to_update.update(password=acc.password)
 #     if to_update:
 #         await manager.update(model=Account, **to_update, ident=ident, ident_val=ident_val)
+
+@router.get('/load-csv')
+async def get_csv_file(
+    user_id: getUserFromTokenDep,
+    ident: str,
+    ident_val: int | str | None,
+    manager: DbManagerDep,
+    to_join: str | None = None,
+):
+    params = await manager.read(
+        model=ParOfAcc, ident=ident, ident_val=int(ident_val), to_join=to_join
+    )
+
