@@ -1,28 +1,56 @@
-import logging
-
-from fastapi import HTTPException, Request, status
-from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-
-from app.exceptions.schemas import ErrorResponse
+from fastapi import Request, status
+from db.exceptions import NotFoundError, AlreadyExistsError, DatabaseError, CustomForeignKeyViolationError
+import logging
 
 log = logging.getLogger(__name__)
 
-def global_exception_handler(request: Request, exc):
-    # error = jsonable_encoder(
-    #     ErrorResponse(code=exc.status_code, detail=exc.detail)
-    # )
-    # log.error(error['detail'])
+def not_found_in_db_exceptions_handler(request: Request, exc: NotFoundError):
+    log.exception('Ошибка поиска в базе данных')
     return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"error": "Internal server error"},
+        status_code = status.HTTP_404_NOT_FOUND,
+        content = {
+            'code': status.HTTP_404_NOT_FOUND,
+            'detail': str(exc)
+        }
     )
 
-
-def exception_handler_to_error_response(request: Request, exc):
-    error = jsonable_encoder(ErrorResponse(code=exc.status_code, detail=exc.detail))
-    log.error(error["detail"])
+def entity_already_exists_in_db_exceptions_handler(request: Request, exc: AlreadyExistsError):
+    log.exception('Ошибка создания в базе данных')
     return JSONResponse(
-        status_code=error["code"],
-        content=dict(detail=error["detail"], code=error["code"]),
+        status_code = status.HTTP_409_CONFLICT,
+        content = {
+            'code': status.HTTP_409_CONFLICT,
+            'detail': str(exc)
+        }
+    )
+
+def foreign_key_violation_exceptions_handler(request: Request, exc: CustomForeignKeyViolationError):
+    log.exception('Ошибка создание внешнего ключа')
+    return JSONResponse(
+        status_code = status.HTTP_409_CONFLICT,
+        content = {
+            'code': status.HTTP_409_CONFLICT,
+            'detail': str(exc)
+        }
+    )
+
+def data_base_exception_handler(request: Request, exc: DatabaseError):
+    log.exception('Ошибка базы данных')
+    return JSONResponse(
+        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content = {
+            'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
+            'detail': str(exc)
+        }
+    )
+
+def global_exception_handler(request: Request, exc: Exception):
+    log.exception("Глобальная ошибка")
+    return JSONResponse(
+        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
+            'detail': str(exc) + ' ' + exc.__class__.__name__
+        }
     )
