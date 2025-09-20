@@ -116,7 +116,7 @@ async def delete_all_accounts(manager: DbManagerDep):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Список аккаунтов пуст"
         )
-    return acc
+    #return acc
 
 
 @router.delete(
@@ -125,13 +125,18 @@ async def delete_all_accounts(manager: DbManagerDep):
     status_code=status.HTTP_200_OK,
     summary="Удаление одного аккаунта",
     response_model=AccOutput,
-    responses={status.HTTP_404_NOT_FOUND: {"detail": "", "model": ErrorResponse}},
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "detail": "Аккаунт не найден",
+            "model": ErrorResponse
+        }
+    },
 )
 async def delete_account_by_id(id_: int, manager: DbManagerDep):
     acc = await manager.delete(model=Account, ident=id_)
     if acc is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Аккаунт с таким id не найден"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Аккаунт не найден"
         )
     return acc
 

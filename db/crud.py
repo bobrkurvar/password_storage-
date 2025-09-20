@@ -3,6 +3,8 @@ from typing import Any, List
 
 from sqlalchemy import delete, join, select, update
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.exc import IntegrityError
+from .exceptions import CustomForeignKeyViolationError, NotFoundError, AlreadyExistsError
 
 log = logging.getLogger(__name__)
 
@@ -18,32 +20,54 @@ class Crud:
             self.__class__._session_factory = async_sessionmaker(self._engine)
 
     async def create(self, model, seq_data: List[Any] | None = None, **kwargs):
-        async with self._session_factory.begin() as session:
-            if seq_data:
-                log.debug("создание нескольких объектов")
-                tup_lst = [model(**new_data) for new_data in seq_data]
-                session.add_all(tup_lst)
-                await session.flush()
-                return tup_lst
-            else:
-                tup = model(**kwargs)
-                session.add(tup)
-                await session.flush()
-                return tup.model_dump()
+        try:
+            async with self._session_factory.begin() as session:
+                if seq_data:
+                    log.debug("создание нескольких объектов")
+                    tup_lst = [model(**new_data) for new_data in seq_data]
+                    session.add_all(tup_lst)
+                    await session.flush()
+                    return tup_lst
+                else:
+                    tup = model(**kwargs)
+                    session.add(tup)
+                    await session.flush()
+                    return tup.model_dump()
+        except IntegrityError as err:
+            log.debug('ПЕРЕХВАТИЛ INTEGIRITYERROR')
+            if err.orig.pgcode == '23505':
+                log.debug('ТАКАЯ СУЩНОСТЬ УЖЕ СУЩЕСТВУЕТ')
+                raise AlreadyExistsError(model.__name__, 'id', tup.id)
+            elif err.orig.pgcode == '23503':
+                log.debug('ВНЕШНИЙ КЛЮЧ НА НЕ СУЩЕСТВУЮЩЕЕ ПОЛЕ')
+                raise CustomForeignKeyViolationError(model.__name__, 'doer_id', 3)
 
     async def delete(
         self, model, ident: str | None = None, ident_val: int | None = None
     ):
-        async with self._session_factory.begin() as session:
-            if not (ident is None):
-                await session.execute(
-                    delete(model).where(getattr(model, ident)) == ident_val
-                )
-            elif ident is None:
-                for_remove = await session.get(model, ident_val)
-                await session.delete(for_remove)
-                return getattr(for_remove, "id")
+        async with self._session.begin() as session:
+            if not (ident_val is None):
+                if ident is None:
+                    log.debug('Crud получил запрос на удаление id: %s', ident_val)
+                    for_remove = await session.get(model, ident_val)
+                    if not (for_remove is None):
+                        await session.delete(for_remove)
+                        return for_remove.model_dump()
+                    else:
+                        raise NotFoundError(model.__name__, 'id', ident_val)
+                else:
+                    log.debug('Crud получил запрос на удаление по параметру %s: %s', ident, ident_val)
+                    for_remove = (await session.execute(select(model).where(getattr(model, ident) == ident_val))).scalars().all()
+                    if not for_remove:
+                        raise NotFoundError(model.__name__, ident, ident_val)
+                    for chunk in for_remove:
+                        await session.delete(chunk)
+                    else:
+                        return True
             else:
+                models = await session.execute(select(model))
+                if models is None:
+                    raise NotFoundError(model.__name__)
                 await session.execute(delete(model))
 
     async def update(self, model, ident: str, ident_val: int, **kwargs):
@@ -82,7 +106,12 @@ class Crud:
                 query = query.offset(offset)
             if limit:
                 query = query.limit(limit)
-            res = (await session.execute(query)).scalars()
+            res = (await session.execute(query)).scalars().all()
+            if not res:
+                log.debug('Возвращаемый список пуст: %s', res)
+                raise NotFoundError(model.__name__, ident, ident_val)
+            if len(res) == 1:
+                return res[0].model_dump()
             return [r.model_dump() for r in res]
 
     async def close_and_dispose(self):
