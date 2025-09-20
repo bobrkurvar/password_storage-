@@ -58,7 +58,7 @@ async def user_create(user: UserInput, manager: dbManagerDep):
     },
 )
 async def read_user_by_id(_id: int, manager: dbManagerDep):
-    user = (await manager.read(model=User, ident="id", ident_val=_id))[0]
+    user = await manager.read(model=User, ident="id", ident_val=_id)
     log.debug("Пользователь получен %s, %s", user.get("id"), user.get("username"))
     return user
 
@@ -79,9 +79,10 @@ async def read_user_by_criteria_or_full_list(
     manager: dbManagerDep, username: str | None = None
 ):
     if username is None:
-        res = await manager.read(User, ident="username", ident_val=username)
-    else:
+        log.debug('Запрос на чтение списка пользователей')
         res = await manager.read(User)
+    else:
+        res = await manager.read(User, ident="username", ident_val=username)
     return res
 
 
@@ -98,10 +99,5 @@ async def read_user_by_criteria_or_full_list(
     },
 )
 async def delete_user(_id: int, manager: dbManagerDep):
-    user = await manager.delete(model=User, ident_val=_id)[0]
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="пользователь с таким id не существует",
-        )
+    user = await manager.delete(model=User, ident_val=_id)
     return user

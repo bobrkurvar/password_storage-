@@ -47,7 +47,7 @@ class Crud:
     async def delete(
         self, model, ident: str | None = None, ident_val: int | None = None
     ):
-        async with self._session.begin() as session:
+        async with self._session_factory.begin() as session:
             if not (ident_val is None):
                 if ident is None:
                     log.debug("Crud получил запрос на удаление id: %s", ident_val)
@@ -95,7 +95,7 @@ class Crud:
         self,
         model,
         ident: str | None = None,
-        ident_val: int | None = None,
+        ident_val: int | str | None = None,
         limit: int | None = None,
         offset: int | None = None,
         order_by: str | None = None,
