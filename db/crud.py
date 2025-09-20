@@ -2,9 +2,11 @@ import logging
 from typing import Any, List
 
 from sqlalchemy import delete, join, select, update
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.exc import IntegrityError
-from .exceptions import CustomForeignKeyViolationError, NotFoundError, AlreadyExistsError
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+from .exceptions import (AlreadyExistsError, CustomForeignKeyViolationError,
+                         NotFoundError)
 
 log = logging.getLogger(__name__)
 
@@ -34,13 +36,13 @@ class Crud:
                     await session.flush()
                     return tup.model_dump()
         except IntegrityError as err:
-            log.debug('ПЕРЕХВАТИЛ INTEGIRITYERROR')
-            if err.orig.pgcode == '23505':
-                log.debug('ТАКАЯ СУЩНОСТЬ УЖЕ СУЩЕСТВУЕТ')
-                raise AlreadyExistsError(model.__name__, 'id', tup.id)
-            elif err.orig.pgcode == '23503':
-                log.debug('ВНЕШНИЙ КЛЮЧ НА НЕ СУЩЕСТВУЮЩЕЕ ПОЛЕ')
-                raise CustomForeignKeyViolationError(model.__name__, 'doer_id', 3)
+            log.debug("ПЕРЕХВАТИЛ INTEGIRITYERROR")
+            if err.orig.pgcode == "23505":
+                log.debug("ТАКАЯ СУЩНОСТЬ УЖЕ СУЩЕСТВУЕТ")
+                raise AlreadyExistsError(model.__name__, "id", tup.id)
+            elif err.orig.pgcode == "23503":
+                log.debug("ВНЕШНИЙ КЛЮЧ НА НЕ СУЩЕСТВУЮЩЕЕ ПОЛЕ")
+                raise CustomForeignKeyViolationError(model.__name__, "doer_id", 3)
 
     async def delete(
         self, model, ident: str | None = None, ident_val: int | None = None
@@ -48,16 +50,28 @@ class Crud:
         async with self._session.begin() as session:
             if not (ident_val is None):
                 if ident is None:
-                    log.debug('Crud получил запрос на удаление id: %s', ident_val)
+                    log.debug("Crud получил запрос на удаление id: %s", ident_val)
                     for_remove = await session.get(model, ident_val)
                     if not (for_remove is None):
                         await session.delete(for_remove)
                         return for_remove.model_dump()
                     else:
-                        raise NotFoundError(model.__name__, 'id', ident_val)
+                        raise NotFoundError(model.__name__, "id", ident_val)
                 else:
-                    log.debug('Crud получил запрос на удаление по параметру %s: %s', ident, ident_val)
-                    for_remove = (await session.execute(select(model).where(getattr(model, ident) == ident_val))).scalars().all()
+                    log.debug(
+                        "Crud получил запрос на удаление по параметру %s: %s",
+                        ident,
+                        ident_val,
+                    )
+                    for_remove = (
+                        (
+                            await session.execute(
+                                select(model).where(getattr(model, ident) == ident_val)
+                            )
+                        )
+                        .scalars()
+                        .all()
+                    )
                     if not for_remove:
                         raise NotFoundError(model.__name__, ident, ident_val)
                     for chunk in for_remove:
@@ -108,7 +122,7 @@ class Crud:
                 query = query.limit(limit)
             res = (await session.execute(query)).scalars().all()
             if not res:
-                log.debug('Возвращаемый список пуст: %s', res)
+                log.debug("Возвращаемый список пуст: %s", res)
                 raise NotFoundError(model.__name__, ident, ident_val)
             if len(res) == 1:
                 return res[0].model_dump()

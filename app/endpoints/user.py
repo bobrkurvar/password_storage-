@@ -1,11 +1,12 @@
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
 from app.endpoints.schemas.user import UserInput, UserOutput
 from app.exceptions.schemas import ErrorResponse
-from db import DbManagerDep
+from db import Crud, get_db_manager
 from db.models import User
 
 router = APIRouter(
@@ -18,6 +19,7 @@ router = APIRouter(
     },
 )
 log = logging.getLogger(__name__)
+dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
 
 @router.post(
@@ -32,7 +34,7 @@ log = logging.getLogger(__name__)
         },
     },
 )
-async def user_create(user: UserInput, manager: DbManagerDep):
+async def user_create(user: UserInput, manager: dbManagerDep):
     try:
         await manager.create(model=User, **user.model_dump())
     except IntegrityError:
@@ -46,7 +48,7 @@ async def user_create(user: UserInput, manager: DbManagerDep):
 @router.get(
     "/{_id}",
     status_code=status.HTTP_200_OK,
-    summary="чтение пользователя",
+    summary="Получение пользователя по id",
     response_model=UserOutput,
     responses={
         status.HTTP_404_NOT_FOUND: {
@@ -55,16 +57,32 @@ async def user_create(user: UserInput, manager: DbManagerDep):
         }
     },
 )
-async def get_user(_id: int, manager: DbManagerDep):
-    try:
-        user = (await manager.read(model=User, ident="id", ident_val=_id))[0]
-        log.debug("Пользователь получен %s, %s", user.get("id"), user.get("username"))
-    except IndexError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="пользователь с таким id не существует",
-        )
+async def read_user_by_id(_id: int, manager: dbManagerDep):
+    user = (await manager.read(model=User, ident="id", ident_val=_id))[0]
+    log.debug("Пользователь получен %s, %s", user.get("id"), user.get("username"))
     return user
+
+
+@router.get(
+    "",
+    summary="Получение пользователя по username или всего списка",
+    status_code=status.HTTP_200_OK,
+    response_model=list[UserOutput],
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "detail": "Пользователи не найдены или список пуст",
+            "model": ErrorResponse,
+        }
+    },
+)
+async def read_user_by_criteria_or_full_list(
+    manager: dbManagerDep, username: str | None = None
+):
+    if username is None:
+        res = await manager.read(User, ident="username", ident_val=username)
+    else:
+        res = await manager.read(User)
+    return res
 
 
 @router.delete(
@@ -79,7 +97,7 @@ async def get_user(_id: int, manager: DbManagerDep):
         }
     },
 )
-async def delete_user(_id: int, manager: DbManagerDep):
+async def delete_user(_id: int, manager: dbManagerDep):
     user = await manager.delete(model=User, ident_val=_id)[0]
     if user is None:
         raise HTTPException(

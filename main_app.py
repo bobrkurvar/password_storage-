@@ -4,11 +4,12 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
-from redis.asyncio import Redis, ConnectionError
 from redis import Redis as Sync_redis
+from redis.asyncio import ConnectionError, Redis
 
 from app.endpoints import main_router
-from app.exceptions.handlers import exception_handler_to_error_response, global_exception_handler
+from app.exceptions.handlers import (exception_handler_to_error_response,
+                                     global_exception_handler)
 from db import get_db_manager
 
 
@@ -25,16 +26,17 @@ async def lifespan(app: FastAPI):
     await manager.close_and_dispose()
     await redis.connection_pool.disconnect()
 
+
 log = logging.getLogger(__name__)
-sync_redis = Sync_redis(host='localhost')
+sync_redis = Sync_redis(host="localhost")
 try:
-    log.debug('ping to redis')
+    log.debug("ping to redis")
     sync_redis.ping()
     app = FastAPI(
         lifespan=lifespan, dependencies=[Depends(RateLimiter(times=5, seconds=10))]
     )
 except ConnectionError:
-    log.debug('ping failed')
+    log.debug("ping failed")
     app = FastAPI(lifespan=lifespan)
 finally:
     sync_redis.close()

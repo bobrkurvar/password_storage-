@@ -8,6 +8,7 @@ from app.exceptions.schemas import ErrorResponse
 
 log = logging.getLogger(__name__)
 
+
 def global_exception_handler(request: Request, exc):
     # error = jsonable_encoder(
     #     ErrorResponse(code=exc.status_code, detail=exc.detail)
