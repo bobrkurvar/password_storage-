@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from app.endpoints.schemas.account import AccInput, AccOutput, AccUpdate
 from app.exceptions.schemas import ErrorResponse
 from core.security import get_user_from_token, getUserFromTokenDep
-from db import DbManagerDep
+from db import Crud, get_db_manager
 from db.models import Account, ParOfAcc
 
 router = APIRouter(
@@ -24,6 +24,7 @@ router = APIRouter(
     },
 )
 log = logging.getLogger(__name__)
+dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
 
 @router.get(
@@ -39,7 +40,7 @@ log = logging.getLogger(__name__)
         }
     },
 )
-async def account_by_id(id_: int, manager: DbManagerDep):
+async def account_by_id(id_: int, manager: dbManagerDep):
     account = await manager.read(model=Account, ident=id_)
     if account is None:
         raise HTTPException(
@@ -60,7 +61,7 @@ async def account_by_id(id_: int, manager: DbManagerDep):
         }
     },
 )
-async def accounts_list(user_id: getUserFromTokenDep, manager: DbManagerDep):
+async def accounts_list(user_id: getUserFromTokenDep, manager: dbManagerDep):
     acc_lst = await manager.read(model=Account, ident="user_id", ident_val=int(user_id))
     if acc_lst is None:
         raise HTTPException(
@@ -83,7 +84,7 @@ async def accounts_list(user_id: getUserFromTokenDep, manager: DbManagerDep):
         }
     },
 )
-async def create_account(acc: AccInput, manager: DbManagerDep):
+async def create_account(acc: AccInput, manager: dbManagerDep):
     try:
         acc_from_db = await manager.create(model=Account, **acc.model_dump())
         log.debug(
@@ -110,13 +111,13 @@ async def create_account(acc: AccInput, manager: DbManagerDep):
         }
     },
 )
-async def delete_all_accounts(manager: DbManagerDep):
+async def delete_all_accounts(manager: dbManagerDep):
     acc = await manager.delete(model=Account)
     if acc is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Список аккаунтов пуст"
         )
-    #return acc
+    # return acc
 
 
 @router.delete(
@@ -128,11 +129,11 @@ async def delete_all_accounts(manager: DbManagerDep):
     responses={
         status.HTTP_404_NOT_FOUND: {
             "detail": "Аккаунт не найден",
-            "model": ErrorResponse
+            "model": ErrorResponse,
         }
     },
 )
-async def delete_account_by_id(id_: int, manager: DbManagerDep):
+async def delete_account_by_id(id_: int, manager: dbManagerDep):
     acc = await manager.delete(model=Account, ident=id_)
     if acc is None:
         raise HTTPException(
@@ -155,7 +156,7 @@ async def delete_account_by_id(id_: int, manager: DbManagerDep):
     },
 )
 async def delete_account_by_criteria(
-    ident: str, ident_val: int | None, manager: DbManagerDep
+    ident: str, ident_val: int | None, manager: dbManagerDep
 ):
     acc = await manager.delete(model=Account, ident=ident, ident_val=ident_val)
     if acc is None:
@@ -192,15 +193,15 @@ async def delete_account_by_criteria(
 #     if to_update:
 #         await manager.update(model=Account, **to_update, ident=ident, ident_val=ident_val)
 
-@router.get('/load-csv')
+
+@router.get("/load-csv")
 async def get_csv_file(
     user_id: getUserFromTokenDep,
     ident: str,
     ident_val: int | str | None,
-    manager: DbManagerDep,
+    manager: dbManagerDep,
     to_join: str | None = None,
 ):
     params = await manager.read(
         model=ParOfAcc, ident=ident, ident_val=int(ident_val), to_join=to_join
     )
-

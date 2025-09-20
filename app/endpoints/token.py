@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.endpoints.schemas.user import OutputToken, UserInput
 from core.security import (create_access_token, create_refresh_token,
                            getUserFromTokenDep, verify)
-from db import DbManagerDep
+from db import Crud, get_db_manager
 from db.models import User
 
 router = APIRouter(
@@ -16,6 +16,7 @@ router = APIRouter(
     ]
 )
 log = logging.getLogger(__name__)
+dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
 
 @router.post(
@@ -25,7 +26,7 @@ log = logging.getLogger(__name__)
     response_model=OutputToken,
 )
 async def login_user(
-    user: Annotated[OAuth2PasswordRequestForm, Depends()], manager: DbManagerDep
+    user: Annotated[OAuth2PasswordRequestForm, Depends()], manager: dbManagerDep
 ):
     if user.client_id is None:
         cur = (
@@ -56,7 +57,7 @@ async def login_user(
     summary="обновление access и refresh токенов",
     response_model=OutputToken,
 )
-async def update_tokens(user_id: getUserFromTokenDep, manager: DbManagerDep):
+async def update_tokens(user_id: getUserFromTokenDep, manager: dbManagerDep):
     cur = (await manager.read(model=User, ident="id", ident_val=int(user_id)))[0]
     if cur:
         access_token = create_access_token({"sub": user_id, "type": "access"})
