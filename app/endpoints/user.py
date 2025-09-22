@@ -35,14 +35,8 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
     },
 )
 async def user_create(user: UserInput, manager: dbManagerDep):
-    try:
-        await manager.create(model=User, **user.model_dump())
-    except IntegrityError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Пользователь с таким id уже существует",
-        )
-    return user
+    res = await manager.create(model=User, **user.model_dump())
+    return res
 
 
 @router.get(
@@ -79,7 +73,7 @@ async def read_user_by_criteria_or_full_list(
     manager: dbManagerDep, username: str | None = None
 ):
     if username is None:
-        log.debug('Запрос на чтение списка пользователей')
+        log.debug("Запрос на чтение списка пользователей")
         res = await manager.read(User)
     else:
         res = await manager.read(User, ident="username", ident_val=username)
