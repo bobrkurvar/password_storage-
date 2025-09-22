@@ -45,7 +45,7 @@ class Crud:
                 raise CustomForeignKeyViolationError(model.__name__, "doer_id", 3)
 
     async def delete(
-        self, model, ident: str | None = None, ident_val: int | None = None
+        self, model, ident: str | None = None, ident_val = None
     ):
         async with self._session.begin() as session:
             if not (ident_val is None):
