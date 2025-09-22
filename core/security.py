@@ -9,13 +9,14 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
+from app.exceptions.custom_errors import UnauthorizedError
 from fastapi.security.oauth2 import OAuth2PasswordBearer
 from passlib.hash import bcrypt
 
 from core import conf
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login", auto_error=False)
 secret_key = conf.secret_key
 algorithm = conf.algorithm
 log = logging.getLogger(__name__)
@@ -53,26 +54,16 @@ def create_refresh_token(data: dict, expires_delta: timedelta = None) -> str:
 
 
 def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
-    invalid_credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    expire_credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Access token expired. Please refresh your token.",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
         payload = jwt.decode(token, secret_key, algorithms=algorithm)
         user_id = payload.get("sub")
         if user_id is None:
             log.debug("user_id is None")
-            raise invalid_credentials_exception
+            raise UnauthorizedError(validate=True)
     except jwt.ExpiredSignatureError:
-        raise expire_credentials_exception
+        raise UnauthorizedError(refresh=True)
     except jwt.InvalidTokenError:
-        raise invalid_credentials_exception
+        raise UnauthorizedError(validate=True)
     return user_id
 
 

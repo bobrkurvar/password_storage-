@@ -5,7 +5,7 @@ from httpx import AsyncClient, ASGITransport
 from main_app import app
 from db import get_db_manager
 from db.exceptions import NotFoundError
-from .fakes.fake_crud import FakeCrud
+from tests.fakes import FakeCrud
 
 
 log = logging.getLogger(__name__)

@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class AccInput(BaseModel):
+    id: int | None = None
     user_id: int
 
 

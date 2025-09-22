@@ -2,6 +2,7 @@ import logging
 
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
+from app.exceptions.custom_errors import UnauthorizedError
 
 from db.exceptions import (AlreadyExistsError, CustomForeignKeyViolationError,
                            DatabaseError, NotFoundError)
@@ -44,6 +45,13 @@ def data_base_exception_handler(request: Request, exc: DatabaseError):
         content={"code": status.HTTP_500_INTERNAL_SERVER_ERROR, "detail": str(exc)},
     )
 
+
+def no_auth_exception_handler(request: Request, exc: UnauthorizedError):
+    log.exception("Ошибка аутентификации")
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={'code': status.HTTP_401_UNAUTHORIZED, 'detail': exc.detail}
+    )
 
 def global_exception_handler(request: Request, exc: Exception):
     log.exception("Глобальная ошибка")

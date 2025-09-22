@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.endpoints.schemas.user import OutputToken, UserInput
+from app.endpoints.schemas.user import OutputToken
 from core.security import (create_access_token, create_refresh_token,
                            getUserFromTokenDep, verify)
 from db import Crud, get_db_manager
@@ -36,19 +36,15 @@ async def login_user(
         cur = (
             await manager.read(model=User, ident="id", ident_val=int(user.client_id))
         )
-    if not cur:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="user not found"
-        )
     log.debug(cur.get("password"))
     if verify(user.password, cur.get("password")):
         log.debug("client_id: %s", user.client_id)
         access_token = create_access_token({"sub": user.client_id})
         refresh_token = create_refresh_token({"sub": user.client_id})
         return {"access_token": access_token, "refresh_token": refresh_token}
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED, detail="credentials error"
-    )
+    # raise HTTPException(
+    #     status_code=status.HTTP_401_UNAUTHORIZED, detail="credentials error"
+    # )
 
 
 @router.post(

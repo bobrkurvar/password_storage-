@@ -1,8 +1,7 @@
 import logging
 from typing import Annotated, List
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.exc import IntegrityError
+from fastapi import APIRouter, Depends, status
 
 from app.endpoints.schemas.account import AccInput, AccOutput, AccUpdate
 from app.exceptions.schemas import ErrorResponse
@@ -42,10 +41,6 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 )
 async def account_by_id(id_: int, manager: dbManagerDep):
     account = await manager.read(model=Account, ident=id_)
-    if account is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Аккаунт не найден"
-        )
     return account
 
 
@@ -63,10 +58,6 @@ async def account_by_id(id_: int, manager: dbManagerDep):
 )
 async def accounts_list(user_id: getUserFromTokenDep, manager: dbManagerDep):
     acc_lst = await manager.read(model=Account, ident="user_id", ident_val=int(user_id))
-    if acc_lst is None:
-        raise HTTPException(
-            detail="Список задач пуст", status_code=status.HTTP_404_NOT_FOUND
-        )
     log.debug("accounts list: %s", acc_lst)
     return acc_lst
 
@@ -85,16 +76,10 @@ async def accounts_list(user_id: getUserFromTokenDep, manager: dbManagerDep):
     },
 )
 async def create_account(acc: AccInput, manager: dbManagerDep):
-    try:
-        acc_from_db = await manager.create(model=Account, **acc.model_dump())
-        log.debug(
-            "returning acc: %s, %s", acc_from_db.get("id"), acc_from_db.get("user_id")
-        )
-    except IntegrityError:
-        raise HTTPException(
-            detail="Аккаунт с данным id уже существует",
-            status_code=status.HTTP_409_CONFLICT,
-        )
+    acc_from_db = await manager.create(model=Account, **acc.model_dump())
+    log.debug(
+        "returning acc: %s, %s", acc_from_db.get("id"), acc_from_db.get("user_id")
+    )
     return acc_from_db
 
 
@@ -112,12 +97,8 @@ async def create_account(acc: AccInput, manager: dbManagerDep):
     },
 )
 async def delete_all_accounts(manager: dbManagerDep):
-    acc = await manager.delete(model=Account)
-    if acc is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Список аккаунтов пуст"
-        )
-    # return acc
+    log.debug('ЗАПРОС НА УДАЛЕНИЕ ВСЕХ АККАУНТОВ')
+    await manager.delete(model=Account)
 
 
 @router.delete(
@@ -134,11 +115,7 @@ async def delete_all_accounts(manager: dbManagerDep):
     },
 )
 async def delete_account_by_id(id_: int, manager: dbManagerDep):
-    acc = await manager.delete(model=Account, ident=id_)
-    if acc is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Аккаунт не найден"
-        )
+    acc = await manager.delete(model=Account, ident_val=id_)
     return acc
 
 
@@ -159,11 +136,6 @@ async def delete_account_by_criteria(
     ident: str, ident_val: int | None, manager: dbManagerDep
 ):
     acc = await manager.delete(model=Account, ident=ident, ident_val=ident_val)
-    if acc is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Аккаунт с таким {ident} не найден",
-        )
     return acc
 
 

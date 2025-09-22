@@ -1,9 +1,18 @@
 from fastapi import HTTPException, status
 
-
-class CustomDbException(HTTPException):
-    def __init__(
-        self, message: str, detail: str, status_code: status.HTTP_404_NOT_FOUND
-    ):
-        HTTPException.__init__(self, status_code, detail)
-        self.message = message
+class UnauthorizedError(Exception):
+    """
+    Исключение, которое будет возбуждено вследствие
+    попытке доступа к защищённому ресурсу без аутентификации
+    """
+    def __init__(self, validate: bool = None, refresh: bool = None):
+        self.status_code = status.HTTP_401_UNAUTHORIZED
+        self.headers = {"WWW-Authenticate": "Bearer"}
+        if validate:
+            self.detail = f"Попытка не аутентифицированного доступа, не валидные учётные данные"
+        elif refresh:
+            self.detail = f"Попытка не аутентифицированного доступа, refresh token истёк"
+        else:
+            self.detail = f"Попытка не аутентифицированного доступа"
+        #super().__init__(status_code=self.status_code, detail=self.detail, headers=self.headers)
+        super().__init__(self.detail)
