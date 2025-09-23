@@ -44,9 +44,7 @@ class Crud:
                 log.debug("ВНЕШНИЙ КЛЮЧ НА НЕ СУЩЕСТВУЮЩЕЕ ПОЛЕ")
                 raise CustomForeignKeyViolationError(model.__name__, "doer_id", 3)
 
-    async def delete(
-        self, model, ident: str | None = None, ident_val = None
-    ):
+    async def delete(self, model, ident: str | None = None, ident_val=None):
         async with self._session_factory.begin() as session:
             if not (ident_val is None):
                 if ident is None:

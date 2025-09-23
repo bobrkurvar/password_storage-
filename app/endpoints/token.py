@@ -29,13 +29,12 @@ async def login_user(
     user: Annotated[OAuth2PasswordRequestForm, Depends()], manager: dbManagerDep
 ):
     if user.client_id is None:
-        cur = (
-            await manager.read(model=User, ident="username", ident_val=user.username)
-        )
+        log.debug("ПОИСК ПОЛЬЗОВАТЕЛЯ В БАЗЕ ПО USERNAME")
+        cur = await manager.read(model=User, ident="username", ident_val=user.username)
     else:
-        cur = (
-            await manager.read(model=User, ident="id", ident_val=int(user.client_id))
-        )
+        log.debug("ПОИСК ПОЛЬЗОВАТЕЛЯ В БАЗЕ ПО ID")
+        cur = await manager.read(model=User, ident="id", ident_val=int(user.client_id))
+    log.debug("ПОЛЬЗОВАТЕЛЬ ИЗ БАЗЫ: %s", cur)
     log.debug(cur.get("password"))
     if verify(user.password, cur.get("password")):
         log.debug("client_id: %s", user.client_id)

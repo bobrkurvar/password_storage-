@@ -51,6 +51,7 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     return response
 
+
 app.include_router(main_router)
 app.add_exception_handler(NotFoundError, not_found_in_db_exceptions_handler)
 app.add_exception_handler(

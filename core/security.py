@@ -10,10 +10,10 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from fastapi import Depends
-from app.exceptions.custom_errors import UnauthorizedError
 from fastapi.security.oauth2 import OAuth2PasswordBearer
 from passlib.hash import bcrypt
 
+from app.exceptions.custom_errors import UnauthorizedError
 from core import conf
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login", auto_error=False)

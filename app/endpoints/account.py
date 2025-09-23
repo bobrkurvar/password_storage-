@@ -97,7 +97,7 @@ async def create_account(acc: AccInput, manager: dbManagerDep):
     },
 )
 async def delete_all_accounts(manager: dbManagerDep):
-    log.debug('ЗАПРОС НА УДАЛЕНИЕ ВСЕХ АККАУНТОВ')
+    log.debug("ЗАПРОС НА УДАЛЕНИЕ ВСЕХ АККАУНТОВ")
     await manager.delete(model=Account)
 
 
