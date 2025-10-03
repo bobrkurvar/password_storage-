@@ -29,7 +29,7 @@ class Crud:
                     tup_lst = [model(**new_data) for new_data in seq_data]
                     session.add_all(tup_lst)
                     await session.flush()
-                    return tup_lst
+                    return [tup.model_dump() for tup in tup_lst]
                 else:
                     tup = model(**kwargs)
                     session.add(tup)

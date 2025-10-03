@@ -100,7 +100,7 @@ async def process_select_account_params(
         await state.set_state(InputAccount.input)
     else:
         kb = get_inline_kb("MENU")
-        text = phrases.account_created
+        text = phrases.account_created.format(acc_id)
         await state.set_state(None)
     msg = (await message.answer(text=text, reply_markup=kb)).message_id
     data.update(msg=msg)
