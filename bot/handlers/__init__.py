@@ -6,7 +6,7 @@ from bot.utils.middleware import AuthMiddleware, DeleteUsersMessageMiddleware
 from . import account, command_core, user
 
 main_router = Router()
-account.router.callback_query.outer_middleware(AuthMiddleware())
+account.router.callback_query.middleware(AuthMiddleware())
 main_router.include_routers(command_core.router, user.router, account.router)
 
 main_router.callback_query.outer_middleware(CallbackAnswerMiddleware())

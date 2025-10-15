@@ -28,10 +28,11 @@ async def press_button_sign_in(
     kb = get_inline_kb(text)
     user = await ext_api_manager.read(prefix="user", ident_val=callback.from_user.id)
     if not user:
-        await callback.message.edit_text(text=phrases.register, reply_markup=kb)
+        msg = (await callback.message.edit_text(text=phrases.register, reply_markup=kb)).message_id
         await state.set_state(InputUser.sign_up)
     else:
-        await callback.message.edit_text(text=phrases.already_reg, reply_markup=kb)
+        msg = (await callback.message.edit_text(text=phrases.already_reg, reply_markup=kb)).message_id
+    await state.update_data(msg=msg)
 
 
 @router.callback_query(
@@ -44,11 +45,11 @@ async def press_button_sign_up(
     kb = get_inline_kb(text)
     user = await ext_api_manager.read(prefix="user", ident_val=callback.from_user.id)
     if not user:
-        await callback.message.edit_text(text=phrases.user_not_exists, reply_markup=kb)
+        msg = (await callback.message.edit_text(text=phrases.user_not_exists, reply_markup=kb)).message_id
     else:
-        await callback.message.edit_text(text=phrases.login, reply_markup=kb)
+        msg = (await callback.message.edit_text(text=phrases.login, reply_markup=kb)).message_id
         await state.set_state(InputUser.sign_in)
-
+    await state.update_data(msg=msg)
 
 @router.message(StateFilter(InputUser.sign_in, InputUser.sign_up))
 async def process_input_password_for_sign_in(

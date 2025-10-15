@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated, List
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Response
 
 from app.endpoints.schemas.account import AccInput, AccOutput, AccUpdate
 from app.exceptions.schemas import ErrorResponse
@@ -27,7 +27,7 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
 
 @router.get(
-    "{id_}",
+    "/{id_}",
     dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="получение одного аккаунта",
@@ -82,27 +82,30 @@ async def create_account(acc: AccInput, manager: dbManagerDep):
     )
     return acc_from_db
 
-
 @router.delete(
     "",
     dependencies=[Depends(get_user_from_token)],
-    status_code=status.HTTP_200_OK,
-    summary="Удаление всех аккаунтов",
-    response_model=AccOutput,
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="удаление аккаунтов по критерию поиска",
     responses={
         status.HTTP_404_NOT_FOUND: {
-            "detail": "Список аккаунтов пуст",
+            "detail": "Аккаунт с таким критерием не найден",
             "model": ErrorResponse,
         }
     },
 )
-async def delete_all_accounts(manager: dbManagerDep):
-    log.debug("ЗАПРОС НА УДАЛЕНИЕ ВСЕХ АККАУНТОВ")
-    await manager.delete(model=Account)
-
+async def delete_accounts(
+    ident: str | None, ident_val: int | None, manager: dbManagerDep
+):
+    if ident is None:
+        log.debug("ЗАПРОС НА УДАЛЕНИЕ ВСЕХ АККАУНТОВ")
+        await manager.delete(model=Account)
+    else:
+        log.debug("УДАЛЕНИЕ АККАУНТА ПО %s = %s", ident, ident_val)
+        await manager.delete(model=Account, ident=ident, ident_val=ident_val)
 
 @router.delete(
-    "{id_}",
+    "/{id_}",
     dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="Удаление одного аккаунта",
@@ -115,56 +118,9 @@ async def delete_all_accounts(manager: dbManagerDep):
     },
 )
 async def delete_account_by_id(id_: int, manager: dbManagerDep):
+    log.debug("ЗАПРСО НА УДАЛЕНИЕ АККАУНТА С ID: %s", id_)
     acc = await manager.delete(model=Account, ident_val=id_)
     return acc
-
-
-@router.delete(
-    "",
-    dependencies=[Depends(get_user_from_token)],
-    status_code=status.HTTP_200_OK,
-    summary="удаление аккаунтов по критерию поиска",
-    response_model=AccOutput,
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "detail": "Аккаунт с таким критерием не найден",
-            "model": ErrorResponse,
-        }
-    },
-)
-async def delete_account_by_criteria(
-    ident: str, ident_val: int | None, manager: dbManagerDep
-):
-    acc = await manager.delete(model=Account, ident=ident, ident_val=ident_val)
-    return acc
-
-
-# @router.patch('{id_}',
-#               dependencies=[Depends(get_user_from_token)],
-#               status_code=status.HTTP_204_NO_CONTENT,
-#               summary='Изменение аккаунта по id',
-# )
-# async def change_account_by_id(id_: int, acc: AccUpdate, manager: DbManagerDep):
-#     to_update = dict()
-#     if not (acc.resource is None):
-#         to_update.update(resource=acc.resource)
-#     if not (AccUpdate.password is None):
-#         to_update.update(password=acc.password)
-#     if to_update:
-#         await manager.update(model=Account, **to_update, ident_val=id_)
-#
-# @router.patch('', dependencies=[Depends(get_user_from_token)], status_code=status.HTTP_200_OK,
-#               summary='изменение аккаунтов по критериям поиска')
-# async def change_account_by_criteria(ident: str, ident_val: int | None,
-#                                      acc: AccUpdate, manager: DbManagerDep):
-#     to_update = dict()
-#     if not (acc.resource is None):
-#         to_update.update(resource=acc.resource)
-#     if not (AccUpdate.password is None):
-#         to_update.update(password=acc.password)
-#     if to_update:
-#         await manager.update(model=Account, **to_update, ident=ident, ident_val=ident_val)
-
 
 @router.get("/load-csv")
 async def get_csv_file(

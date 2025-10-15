@@ -49,11 +49,16 @@ class MyExternalApiForBot:
 
     async def remove(self, prefix: str, **data):
         id_ = data.get("ident")
+        try:
+            headers = {"Authorization": f"Bearer {data.pop('access_token')}"}
+        except KeyError:
+            headers = {}
+        log.debug("ext data: %s", data)
         if (not (id_ is None)) and (len(data) == 1):
-            async with self._session.delete(self._url + prefix + f"/{id_}"):
+            async with self._session.delete(self._url + prefix + f"/{id_}", headers=headers):
                 pass
         else:
-            async with self._session.delete(self._url + prefix, params=data):
+            async with self._session.delete(self._url + prefix, params=data, headers=headers):
                 pass
 
     async def read(self, prefix: str, **data):

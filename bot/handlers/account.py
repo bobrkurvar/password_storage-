@@ -9,7 +9,7 @@ from aiogram.fsm.state import default_state
 from aiogram.types import CallbackQuery, Message
 
 from bot.filters import CallbackFactory
-from bot.filters.states import InputAccount
+from bot.filters.states import InputAccount, DeleteAccount
 from bot.lexicon import phrases
 from bot.utils.keyboards import get_inline_kb
 from core.security import decrypt, encrypt
@@ -176,3 +176,34 @@ async def press_button_accounts(
     msg = (await callback.message.edit_text(text=text, reply_markup=kb)).message_id
     data.update(msg=msg)
     await state.set_data(data)
+
+@router.callback_query(StateFilter(default_state), CallbackFactory.filter(F.act.lower() == "delete account"))
+async def press_button_delete_account(callback: CallbackQuery, ext_api_manager: MyExternalApiForBot, state: FSMContext):
+    access_token = await state.storage.get_token(state.key, "access_token")
+    log.debug("token: %s", access_token)
+    to_delete_lst = await ext_api_manager.read("account", access_token=access_token)
+    if not to_delete_lst:
+        kb = get_inline_kb('MENU')
+        msg = (await callback.message.edit_text(text="empty account_lst", reply_markup=kb)).message_id
+    else:
+        log.debug("to_delete_lst: %s", to_delete_lst)
+        buttons_data_lst = [{"account_id": i.get("id")} for i in to_delete_lst]
+        log.debug("buttons_data_lst: %s", buttons_data_lst)
+        kb = get_inline_kb(*[str(i.get("id"))for i in to_delete_lst], 'ALL', 'MENU', width=3, buttons_data_lst = buttons_data_lst)
+        msg = (await callback.message.edit_text(text="choice account", reply_markup=kb)).message_id
+        await state.set_state(DeleteAccount.choice)
+    await state.update_data(msg=msg)
+
+@router.callback_query(StateFilter(DeleteAccount.choice), CallbackFactory.filter())
+async def process_delete_account(callback: CallbackQuery, ext_api_manager: MyExternalApiForBot, state: FSMContext,
+                                callback_data: CallbackFactory):
+    kb = get_inline_kb("MENU")
+    access_token = await state.storage.get_token(state.key, "access_token")
+    log.debug("token: %s", access_token)
+    if callback_data.act.lower() == 'all':
+        await ext_api_manager.remove("account", ident='user_id', ident_val=callback.from_user.id, access_token=access_token)
+    else:
+        await ext_api_manager.remove('account',ident=callback_data.account_id, access_token=access_token)
+    msg = (await callback.message.edit_text(text="account deleted", reply_markup=kb)).message_id
+    await state.update_data(msg=msg)
+    await state.set_state(None)

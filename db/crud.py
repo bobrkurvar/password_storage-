@@ -5,8 +5,11 @@ from sqlalchemy import delete, join, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from .exceptions import (AlreadyExistsError, CustomForeignKeyViolationError,
-                         NotFoundError)
+from .exceptions import (
+    AlreadyExistsError,
+    CustomForeignKeyViolationError,
+    NotFoundError,
+)
 
 log = logging.getLogger(__name__)
 
@@ -74,8 +77,6 @@ class Crud:
                         raise NotFoundError(model.__name__, ident, ident_val)
                     for chunk in for_remove:
                         await session.delete(chunk)
-                    else:
-                        return True
             else:
                 models = await session.execute(select(model))
                 if models is None:
@@ -122,8 +123,6 @@ class Crud:
             if not res:
                 log.debug("Возвращаемый список пуст: %s", res)
                 raise NotFoundError(model.__name__, ident, ident_val)
-            if len(res) == 1:
-                return res[0].model_dump()
             return [r.model_dump() for r in res]
 
     async def close_and_dispose(self):

@@ -15,29 +15,6 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
 
 @router.get(
-    "{id_}",
-    dependencies=[Depends(get_user_from_token)],
-    status_code=status.HTTP_200_OK,
-    summary="чтение параметра по id",
-    response_model=ParamOutput,
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "detail": "Параметра с таким id нет",
-            "model": ErrorResponse,
-        }
-    },
-)
-async def get_param_by_id(id_: int, manager: dbManagerDep):
-    params = await manager.read(model=ParOfAcc, ident_val=id_)
-    if params in None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Параметра с таким id нет"
-        )
-    param = params[0]
-    return param
-
-
-@router.get(
     "",
     dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
@@ -51,21 +28,33 @@ async def get_param_by_id(id_: int, manager: dbManagerDep):
     },
 )
 async def get_param_by_criteria(
-    ident: str,
-    ident_val: int | str | None,
     manager: dbManagerDep,
-    to_join: str | None = None,
+    ident: str,
+    ident_val: str | int | None,
+    to_join: str | None = None
 ):
     params = await manager.read(
         model=ParOfAcc, ident=ident, ident_val=int(ident_val), to_join=to_join
     )
-    if params is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Параметров с таким {ident} нет",
-        )
     return params
 
+
+@router.get(
+    "/{id_}",
+    dependencies=[Depends(get_user_from_token)],
+    status_code=status.HTTP_200_OK,
+    summary="чтение параметра по id",
+    response_model=ParamOutput,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "detail": "Параметра с таким id нет",
+            "model": ErrorResponse,
+        }
+    },
+)
+async def get_param_by_id(id_: int, manager: dbManagerDep):
+    param = (await manager.read(model=ParOfAcc, ident_val=id_))[0]
+    return param
 
 @router.post(
     "",
@@ -80,3 +69,14 @@ async def create_account_params(manager: dbManagerDep, params: ParamInput):
     log.debug("params_dict: %s", params_dict)
     response = await manager.create(model=ParOfAcc, seq_data=params_dict)
     return response
+
+@router.delete(
+    "",
+    dependencies=[Depends(get_user_from_token)],
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Удаление параметров аккаунта"
+)
+async def delete_account_params_by_account_id(manager: dbManagerDep, account_id: int):
+    log.debug("Запрос на удаление параметров аккаунта с id: %s", account_id)
+    await manager.delete(model=ParOfAcc, ident="acc_id", ident_val=account_id)
+

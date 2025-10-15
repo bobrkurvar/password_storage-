@@ -4,8 +4,12 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
 from app.exceptions.custom_errors import UnauthorizedError
-from db.exceptions import (AlreadyExistsError, CustomForeignKeyViolationError,
-                           DatabaseError, NotFoundError)
+from db.exceptions import (
+    AlreadyExistsError,
+    CustomForeignKeyViolationError,
+    DatabaseError,
+    NotFoundError,
+)
 
 log = logging.getLogger(__name__)
 

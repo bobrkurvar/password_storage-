@@ -52,7 +52,7 @@ async def user_create(user: UserInput, manager: dbManagerDep):
     },
 )
 async def read_user_by_id(_id: int, manager: dbManagerDep):
-    user = await manager.read(model=User, ident="id", ident_val=_id)
+    user = (await manager.read(model=User, ident="id", ident_val=_id))[0]
     log.debug("Пользователь получен %s, %s", user.get("id"), user.get("username"))
     return user
 

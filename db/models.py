@@ -30,10 +30,10 @@ class User(Base):
 class Account(Base):
     __tablename__ = "accounts"
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("pas_users.id"))
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("pas_users.id", ondelete='CASCADE'))
     user: Mapped["User"] = relationship("User", back_populates="accounts")
     params: Mapped[list["ParOfAcc"]] = relationship(
-        "ParOfAcc", back_populates="account"
+        "ParOfAcc", back_populates="account", cascade="all, delete, delete-orphan", passive_deletes=True
     )
 
     def __str__(self):
@@ -51,7 +51,7 @@ class Account(Base):
 class ParOfAcc(Base):
     __tablename__ = "params"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    acc_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("accounts.id"))
+    acc_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("accounts.id", ondelete='CASCADE'))
     account: Mapped["Account"] = relationship("Account", back_populates="params")
     name: Mapped[str]
     secret: Mapped[bool]

@@ -13,7 +13,7 @@ router = Router()
 
 @router.message(CommandStart())
 async def process_command_start(message: Message, state: FSMContext):
-    buttons = ("ACCOUNTS", "CREATE ACCOUNT")
+    buttons = ("ACCOUNTS", "CREATE ACCOUNT", "DELETE ACCOUNT")
     kb = get_inline_kb(*buttons, user_id=message.from_user.id)
     msg = (await state.get_data()).get("msg")
     if msg:
@@ -22,14 +22,13 @@ async def process_command_start(message: Message, state: FSMContext):
         except TelegramBadRequest:
             pass
     msg = (await message.answer(text=phrases.start, reply_markup=kb)).message_id
-    if not (msg is None):
-        await state.update_data(msg=msg)
+    await state.update_data(msg=msg)
     await state.set_state(None)
 
 
 @router.callback_query(CallbackFactory.filter(F.act.lower() == "start"))
 async def press_button_start(callback: CallbackQuery, state: FSMContext):
-    buttons = ("ACCOUNTS", "CREATE ACCOUNT")
+    buttons = ("ACCOUNTS", "CREATE ACCOUNT", "DELETE ACCOUNT")
     kb = get_inline_kb(*buttons, user_id=callback.from_user.id)
     msg = (
         await callback.message.edit_text(text=phrases.start, reply_markup=kb)
@@ -61,7 +60,7 @@ async def process_command_help(message: Message, state: FSMContext):
 
 @router.callback_query(CallbackFactory.filter(F.act.lower() == "menu"))
 async def press_button_menu(callback: CallbackQuery, state: FSMContext):
-    buttons = ("ACCOUNTS", "CREATE ACCOUNT")
+    buttons = ("ACCOUNTS", "CREATE ACCOUNT", "DELETE ACCOUNT")
     kb = get_inline_kb(*buttons, user_id=callback.from_user.id)
     msg = (
         await callback.message.edit_text(text=phrases.start, reply_markup=kb)

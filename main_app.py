@@ -44,12 +44,12 @@ finally:
     sync_redis.connection_pool.disconnect()
 
 
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    body = await request.body()
-    log.debug("REQUEST BODY: %s", body.decode())
-    response = await call_next(request)
-    return response
+# @app.middleware("http")
+# async def log_requests(request: Request, call_next):
+#     body = await request.body()
+#     log.debug("REQUEST BODY: %s", body.decode())
+#     response = await call_next(request)
+#     return response
 
 
 app.include_router(main_router)

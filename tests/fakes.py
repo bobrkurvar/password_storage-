@@ -1,13 +1,4 @@
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Annotated
-
-import jwt
-from fastapi import Depends
-from fastapi.security.oauth2 import OAuth2PasswordBearer
-
-from app.exceptions.custom_errors import UnauthorizedError
-from core import conf
 from db.exceptions import AlreadyExistsError, NotFoundError
 
 log = logging.getLogger(__name__)

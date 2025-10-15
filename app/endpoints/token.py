@@ -5,8 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.endpoints.schemas.user import OutputToken
-from core.security import (create_access_token, create_refresh_token,
-                           getUserFromTokenDep, verify)
+from core.security import (
+    create_access_token,
+    create_refresh_token,
+    getUserFromTokenDep,
+    verify,
+)
 from db import Crud, get_db_manager
 from db.models import User
 
@@ -30,10 +34,10 @@ async def login_user(
 ):
     if user.client_id is None:
         log.debug("ПОИСК ПОЛЬЗОВАТЕЛЯ В БАЗЕ ПО USERNAME")
-        cur = await manager.read(model=User, ident="username", ident_val=user.username)
+        cur = (await manager.read(model=User, ident="username", ident_val=user.username))[0]
     else:
         log.debug("ПОИСК ПОЛЬЗОВАТЕЛЯ В БАЗЕ ПО ID")
-        cur = await manager.read(model=User, ident="id", ident_val=int(user.client_id))
+        cur = (await manager.read(model=User, ident="id", ident_val=int(user.client_id)))[0]
     log.debug("ПОЛЬЗОВАТЕЛЬ ИЗ БАЗЫ: %s", cur)
     log.debug(cur.get("password"))
     if verify(user.password, cur.get("password")):
@@ -41,9 +45,6 @@ async def login_user(
         access_token = create_access_token({"sub": user.client_id})
         refresh_token = create_refresh_token({"sub": user.client_id})
         return {"access_token": access_token, "refresh_token": refresh_token}
-    # raise HTTPException(
-    #     status_code=status.HTTP_401_UNAUTHORIZED, detail="credentials error"
-    # )
 
 
 @router.post(
@@ -53,7 +54,7 @@ async def login_user(
     response_model=OutputToken,
 )
 async def update_tokens(user_id: getUserFromTokenDep, manager: dbManagerDep):
-    cur = (await manager.read(model=User, ident="id", ident_val=int(user_id)))[0]
+    cur = await manager.read(model=User, ident="id", ident_val=int(user_id))
     if cur:
         access_token = create_access_token({"sub": user_id, "type": "access"})
         refresh_token = create_refresh_token({"sub": user_id, "type": "refresh"})
