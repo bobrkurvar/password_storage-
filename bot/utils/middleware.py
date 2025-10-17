@@ -2,7 +2,7 @@ import logging
 from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, TelegramObject
 
 from bot.lexicon import phrases
 from bot.utils.keyboards import get_inline_kb
@@ -60,3 +60,14 @@ class DeleteUsersMessageMiddleware(BaseMiddleware):
         result = await handler(event, data)
         await event.delete()
         return result
+
+class FetchUserInfo(BaseMiddleware):
+    async def __call__(
+        self,
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
+        event: TelegramObject,
+        data: dict[str, Any],
+    ):
+        state, ext_api_manager = data.get('state'), data.get('ext_api_manager')
+        user_info = await ext_api_manager.read('user', ident=event.from_user.id)
+        await state.update_data(user_info=user_info[0])

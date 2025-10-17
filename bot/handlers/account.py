@@ -41,6 +41,7 @@ async def process_select_account_params(
     msg = data.get("msg")
     if cur_state == InputAccount.params:
         params_lst = message.text.split()
+        params_lst = [i.strip() for i in params_lst]
         if not ("password" in params_lst):
             params_lst.append("password")
         data.update(params_lst=params_lst)
@@ -51,13 +52,9 @@ async def process_select_account_params(
             content = message.text
             cur_param = params_lst[0]
             log.debug("current param: %s", cur_param)
-            param_dict = dict(secret=False)
+            param_dict = dict()
             if data.pop("secret", None):
-                master_password = (
-                    await ext_api_manager.read(
-                        prefix="user", ident_val=message.from_user.id
-                    )
-                ).get("password")
+                master_password = data.get('user_info').get('password')
                 log.debug("Master Password: %s", master_password)
                 content = base64.urlsafe_b64encode(
                     encrypt(message.text, master_password)
@@ -73,13 +70,15 @@ async def process_select_account_params(
             else:
                 data.pop("params_lst")
                 access_token = await state.storage.get_token(state.key, "access_token")
-                acc_id = (
+                acc = (
                     await ext_api_manager.create(
                         prefix="account",
                         access_token=access_token,
                         user_id=message.from_user.id,
                     )
-                ).get("id")
+                )
+                acc_id = acc.get("id")
+                acc_name = acc.get("name")
                 log.debug("params: %s", params_dict_lst)
                 log.debug("acc_id: %s", acc_id)
                 await ext_api_manager.create(
@@ -88,7 +87,6 @@ async def process_select_account_params(
                     acc_id=acc_id,
                     items=params_dict_lst,
                 )
-                data.pop("params_dict_lst")
     try:
         await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
     except TelegramBadRequest:
@@ -100,13 +98,11 @@ async def process_select_account_params(
         await state.set_state(InputAccount.input)
     else:
         kb = get_inline_kb("MENU")
-        text = phrases.account_created.format(acc_id)
+        text = phrases.account_created.format(acc_name)
         await state.set_state(None)
     msg = (await message.answer(text=text, reply_markup=kb)).message_id
     data.update(msg=msg)
-    data.pop("acc_params_lst", None)
     await state.set_data(data)
-
 
 @router.callback_query(
     StateFilter(InputAccount.params, InputAccount.input),
@@ -178,18 +174,20 @@ async def press_button_accounts(
     await state.set_data(data)
 
 @router.callback_query(StateFilter(default_state), CallbackFactory.filter(F.act.lower() == "delete account"))
-async def press_button_delete_account(callback: CallbackQuery, ext_api_manager: MyExternalApiForBot, state: FSMContext):
-    access_token = await state.storage.get_token(state.key, "access_token")
-    log.debug("token: %s", access_token)
-    to_delete_lst = await ext_api_manager.read("account", access_token=access_token)
+async def press_button_delete_account(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    to_delete_lst = data.get('acc_params_lst')
     if not to_delete_lst:
         kb = get_inline_kb('MENU')
         msg = (await callback.message.edit_text(text="empty account_lst", reply_markup=kb)).message_id
     else:
         log.debug("to_delete_lst: %s", to_delete_lst)
-        buttons_data_lst = [{"account_id": i.get("id")} for i in to_delete_lst]
+        buttons_data_lst = []
+        [buttons_data_lst.append({"account_id": i.get("acc_id")}) for i in to_delete_lst if {"account_id": i.get("acc")} not in buttons_data_lst]
         log.debug("buttons_data_lst: %s", buttons_data_lst)
-        kb = get_inline_kb(*[str(i.get("id"))for i in to_delete_lst], 'ALL', 'MENU', width=3, buttons_data_lst = buttons_data_lst)
+        view_lst = []
+        [view_lst.append(str(i.get('acc_id'))) for i in to_delete_lst if str(i.get('acc_id')) not in view_lst]
+        kb = get_inline_kb(*view_lst, 'ALL', 'MENU', width=3, buttons_data_lst = buttons_data_lst)
         msg = (await callback.message.edit_text(text="choice account", reply_markup=kb)).message_id
         await state.set_state(DeleteAccount.choice)
     await state.update_data(msg=msg)
@@ -205,5 +203,7 @@ async def process_delete_account(callback: CallbackQuery, ext_api_manager: MyExt
     else:
         await ext_api_manager.remove('account',ident=callback_data.account_id, access_token=access_token)
     msg = (await callback.message.edit_text(text="account deleted", reply_markup=kb)).message_id
-    await state.update_data(msg=msg)
+    acc_params_lst: list = (await state.get_data()).get('acc_params_lst')
+    acc_params_lst = [item for item in acc_params_lst if item.get("acc_id") != callback_data.account_id]
+    await state.update_data(msg=msg, acc_params_lst=acc_params_lst)
     await state.set_state(None)
