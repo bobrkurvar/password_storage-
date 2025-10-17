@@ -8,12 +8,14 @@ class Base(AsyncAttrs, DeclarativeBase):
     pass
 
 
-class User(Base):
+class Users(Base):
     __tablename__ = "pas_users"
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     username: Mapped[str]
     password: Mapped[str]
-    accounts: Mapped[list["Account"]] = relationship("Account", back_populates="user")
+    accounts: Mapped[list["Accounts"]] = relationship("Accounts", back_populates="user")
+    actions: Mapped[list["UsersActions"]] = relationship("UsersActions", back_populates="user")
+    roles: Mapped[list["UsersRoles"]] = relationship("UsersRoles", back_populates="users")
 
     def __str__(self):
         text = f"id: {self.id}, username: {self.username}"
@@ -27,13 +29,13 @@ class User(Base):
         return {"id": self.id, "username": self.username, "password": self.password}
 
 
-class Account(Base):
+class Accounts(Base):
     __tablename__ = "accounts"
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("pas_users.id", ondelete='CASCADE'))
-    user: Mapped["User"] = relationship("User", back_populates="accounts")
-    params: Mapped[list["ParOfAcc"]] = relationship(
-        "ParOfAcc", back_populates="account", cascade="all, delete, delete-orphan", passive_deletes=True
+    user: Mapped["Users"] = relationship("Users", back_populates="accounts")
+    params: Mapped[list["Params"]] = relationship(
+        "Params", back_populates="account", cascade="all, delete, delete-orphan", passive_deletes=True
     )
 
     def __str__(self):
@@ -48,11 +50,11 @@ class Account(Base):
         return {"id": self.id, "user_id": self.user_id}
 
 
-class ParOfAcc(Base):
+class Params(Base):
     __tablename__ = "params"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     acc_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("accounts.id", ondelete='CASCADE'))
-    account: Mapped["Account"] = relationship("Account", back_populates="params")
+    account: Mapped["Accounts"] = relationship("Accounts", back_populates="params")
     name: Mapped[str]
     secret: Mapped[bool]
     content: Mapped[str]
@@ -73,3 +75,39 @@ class ParOfAcc(Base):
             "name": self.name,
             "content": self.content,
         }
+
+class Actions(Base):
+    __tablename__ = "actions"
+    action_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    action_description: Mapped[str]
+    user_action: Mapped[list["UsersActions"]] = relationship("UsersActions", back_populates="action")
+    action_to_roles: Mapped[list["RolesPermissions"]] = relationship("RolesPermissions", back_populates="actions")
+
+class UsersActions(Base):
+    __tablename__ = "users_actions"
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("pas_users.id"), primary_key=True)
+    action_id: Mapped[int] = mapped_column(ForeignKey("actions.action_id"), primary_key=True)
+    action: Mapped["Actions"] = relationship("Actions", back_populates="user_action")
+    user: Mapped["Users"] = relationship("Users", back_populates="actions")
+
+class Roles(Base):
+    __tablename__ = "roles"
+    role_id: Mapped[int] = mapped_column(primary_key=True)
+    role_name: Mapped[str]
+    role_permissions: Mapped[list["RolesPermissions"]] = relationship("RolesPermissions", back_populates="roles")
+    users_roles: Mapped[list["UsersRoles"]] = relationship("UsersRoles", back_populates="roles")
+
+class RolesPermissions(Base):
+    __tablename__ = "roles_permissions"
+    role_id: Mapped[int] = mapped_column(ForeignKey("roles.role_id"), primary_key=True)
+    action_id: Mapped[int] = mapped_column(ForeignKey("actions.action_id"), primary_key=True)
+    roles: Mapped["Roles"] = relationship("Roles", back_populates="role_permissions")
+    actions: Mapped["Actions"] = relationship("Actions", back_populates="action_to_roles")
+
+class UsersRoles(Base):
+    __tablename__ = "users_roles"
+    user_id: Mapped[int] = mapped_column(ForeignKey("pas_users.id"), primary_key=True)
+    role_id: Mapped[int] = mapped_column(ForeignKey("roles.role_id"), primary_key=True)
+    users: Mapped["Users"] = relationship("Users", back_populates="roles")
+    roles: Mapped["Roles"] = relationship("Roles", back_populates="users_roles")
+
