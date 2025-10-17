@@ -43,7 +43,9 @@ async def press_button_sign_up(
 ):
     text = "MENU"
     kb = get_inline_kb(text)
-    user = await ext_api_manager.read(prefix="user", ident_val=callback.from_user.id)
+    data = await state.get_data()
+    #user = await ext_api_manager.read(prefix="user", ident_val=callback.from_user.id)
+    user = data.get("user_info")
     if not user:
         msg = (await callback.message.edit_text(text=phrases.user_not_exists, reply_markup=kb)).message_id
     else:
