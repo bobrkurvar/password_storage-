@@ -79,6 +79,7 @@ class Params(Base):
 class Actions(Base):
     __tablename__ = "actions"
     action_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    action_name: Mapped[str] = mapped_column(nullable=False, unique=True)
     action_description: Mapped[str]
     user_action: Mapped[list["UsersActions"]] = relationship("UsersActions", back_populates="action")
     action_to_roles: Mapped[list["RolesPermissions"]] = relationship("RolesPermissions", back_populates="actions")
