@@ -150,9 +150,11 @@ class SharedAccounts(Base):
     account_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("accounts.id"), primary_key=True
     )
-    owner_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("pas_users.id"))
     user_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("pas_users.id"), primary_key=True
+    )
+    owner_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("pas_users.id"), nullable=False
     )
     can_edit: Mapped[bool] = mapped_column(default=False)
     owner: Mapped["Users"] = relationship(
