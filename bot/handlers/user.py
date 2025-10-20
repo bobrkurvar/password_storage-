@@ -21,12 +21,14 @@ log = logging.getLogger(__name__)
 @router.callback_query(
     StateFilter(default_state), CallbackFactory.filter(F.act.lower() == "sign up")
 )
-async def press_button_sign_in(
+async def press_button_sign_up(
     callback: CallbackQuery, ext_api_manager: MyExternalApiForBot, state: FSMContext
 ):
     text = "MENU"
     kb = get_inline_kb(text)
-    user = await ext_api_manager.read(prefix="user", ident_val=callback.from_user.id)
+    data = await state.get_data()
+    #user = await ext_api_manager.read(prefix="user", ident_val=callback.from_user.id)
+    user = data.get("user_info")
     if not user:
         msg = (await callback.message.edit_text(text=phrases.register, reply_markup=kb)).message_id
         await state.set_state(InputUser.sign_up)
@@ -39,7 +41,7 @@ async def press_button_sign_in(
     StateFilter(default_state), CallbackFactory.filter(F.act.lower() == "sign in")
 )
 async def press_button_sign_up(
-    callback: CallbackQuery, ext_api_manager: MyExternalApiForBot, state: FSMContext
+    callback: CallbackQuery, state: FSMContext
 ):
     text = "MENU"
     kb = get_inline_kb(text)
@@ -65,6 +67,11 @@ async def process_input_password_for_sign_in(
             id=message.from_user.id,
             password=get_password_hash(message.text),
             username=message.from_user.username,
+        )
+        await ext_api_manager.create(
+            prefix="user/roles",
+            user_id=message.from_user.id,
+            role_id=''
         )
         buttons = ("SIGN IN", "SIGN UP")
     else:

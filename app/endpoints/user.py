@@ -1,13 +1,12 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.exc import IntegrityError
+from fastapi import APIRouter, Depends, status
 
-from app.endpoints.schemas.user import UserInput, UserOutput
+from app.endpoints.schemas.user import UserInput, UserOutput, UserRolesOutput, UserRolesInput
 from app.exceptions.schemas import ErrorResponse
 from db import Crud, get_db_manager
-from db.models import User
+from db.models import Users, UsersRoles, Roles
 
 router = APIRouter(
     tags=["User"],
@@ -35,9 +34,24 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
     },
 )
 async def user_create(user: UserInput, manager: dbManagerDep):
-    res = await manager.create(model=User, **user.model_dump())
+    res = await manager.create(model=Users, **user.model_dump())
     return res
 
+@router.get(
+    "/{_id}/roles",
+    status_code=status.HTTP_200_OK,
+    summary="Чтение ролей пользователя по id",
+    response_model=list[UserRolesOutput],
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "detail": "У пользователя нет ролей",
+            "model": ErrorResponse
+        }
+    },
+)
+async def read_user_roles(_id: int, manager: dbManagerDep):
+    result = await manager.read(model=Roles, ident="user_id", ident_val=_id, to_join="users_roles")
+    return result
 
 @router.get(
     "/{_id}",
@@ -52,7 +66,7 @@ async def user_create(user: UserInput, manager: dbManagerDep):
     },
 )
 async def read_user_by_id(_id: int, manager: dbManagerDep):
-    user = (await manager.read(model=User, ident="id", ident_val=_id))[0]
+    user = (await manager.read(model=Users, ident="id", ident_val=_id))[0]
     log.debug("Пользователь получен %s, %s", user.get("id"), user.get("username"))
     return user
 
@@ -74,9 +88,9 @@ async def read_user_by_criteria_or_full_list(
 ):
     if username is None:
         log.debug("Запрос на чтение списка пользователей")
-        res = await manager.read(User)
+        res = await manager.read(Users)
     else:
-        res = await manager.read(User, ident="username", ident_val=username)
+        res = await manager.read(Users, ident="username", ident_val=username)
     return res
 
 
@@ -93,5 +107,21 @@ async def read_user_by_criteria_or_full_list(
     },
 )
 async def delete_user(_id: int, manager: dbManagerDep):
-    user = await manager.delete(model=User, ident_val=_id)
+    user = await manager.delete(model=Users, ident_val=_id)
     return user
+
+@router.post(
+    "/roles",
+    status_code=status.HTTP_201_CREATED,
+    summary="создание роли пользователя",
+    response_model=UserRolesOutput,
+    responses={
+        status.HTTP_409_CONFLICT: {
+            "detail": "Роль с таким id или именем уже существует",
+            "model": ErrorResponse
+        }
+    },
+)
+async def create_user_role(role: UserRolesInput, manager: dbManagerDep):
+    result = (await manager.create(model=UsersRoles, user_id=role.user_id, role_name=role.role_name))[0]
+    return result

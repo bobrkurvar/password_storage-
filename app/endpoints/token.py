@@ -8,7 +8,7 @@ from app.endpoints.schemas.user import OutputToken
 from core.security import (create_access_token, create_refresh_token,
                            getUserFromTokenDep, verify)
 from db import Crud, get_db_manager
-from db.models import Roles, User, UsersRoles
+from db.models import Roles, Users
 
 router = APIRouter(
     tags=[
@@ -29,21 +29,25 @@ async def login_user(
     user: Annotated[OAuth2PasswordRequestForm, Depends()], manager: dbManagerDep
 ):
     if user.client_id is None:
+        ident = "username"
         log.debug("ПОИСК ПОЛЬЗОВАТЕЛЯ В БАЗЕ ПО USERNAME")
         cur = (
-            await manager.read(model=User, ident="username", ident_val=user.username)
+            await manager.read(model=Users, ident=ident, ident_val=user.username)
         )[0]
     else:
+        ident = "user_id"
         log.debug("ПОИСК ПОЛЬЗОВАТЕЛЯ В БАЗЕ ПО ID")
         cur = (
-            await manager.read(model=User, ident="id", ident_val=int(user.client_id))
+            await manager.read(model=Users, ident="id", ident_val=int(user.client_id))
         )[0]
     log.debug("ПОЛЬЗОВАТЕЛЬ ИЗ БАЗЫ: %s", cur)
     log.debug(cur.get("password"))
+    ident_val = int(user.client_id) if ident == "user_id" else user.username
+    roles = (await manager.read(model=Roles, ident=ident, ident_val=ident_val, to_join="users_roles"))[0]
     if verify(user.password, cur.get("password")):
         log.debug("client_id: %s", user.client_id)
-        access_token = create_access_token({"sub": user.client_id})
-        refresh_token = create_refresh_token({"sub": user.client_id})
+        access_token = create_access_token({"sub": user.client_id, "roles": roles})
+        refresh_token = create_refresh_token({"sub": user.client_id, "roles": roles})
         return {"access_token": access_token, "refresh_token": refresh_token}
 
 
@@ -54,9 +58,9 @@ async def login_user(
     response_model=OutputToken,
 )
 async def update_tokens(user_id: getUserFromTokenDep, manager: dbManagerDep):
-    cur = await manager.read(model=User, ident="id", ident_val=int(user_id))
+    cur = await manager.read(model=Users, ident="id", ident_val=int(user_id))
     roles = await manager.read(
-        model=Roles, ident="user_id", ident_val=int(user_id), to_join="UsersRoles"
+        model=Roles, ident="user_id", ident_val=int(user_id), to_join="users_roles"
     )
     log.debug("user roles: %s", roles)
     if cur:

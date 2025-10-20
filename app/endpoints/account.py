@@ -1,13 +1,13 @@
 import logging
 from typing import Annotated, List
 
-from fastapi import APIRouter, Depends, status, Response
+from fastapi import APIRouter, Depends, status
 
-from app.endpoints.schemas.account import AccInput, AccOutput, AccUpdate
+from app.endpoints.schemas.account import AccInput, AccOutput
 from app.exceptions.schemas import ErrorResponse
 from core.security import get_user_from_token, getUserFromTokenDep
 from db import Crud, get_db_manager
-from db.models import Account, ParOfAcc
+from db.models import Accounts, Params
 
 router = APIRouter(
     tags=["Account"],
@@ -40,7 +40,7 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
     },
 )
 async def account_by_id(id_: int, manager: dbManagerDep):
-    account = await manager.read(model=Account, ident=id_)
+    account = await manager.read(model=Accounts, ident=id_)
     return account
 
 
@@ -57,7 +57,7 @@ async def account_by_id(id_: int, manager: dbManagerDep):
     },
 )
 async def accounts_list(user_id: getUserFromTokenDep, manager: dbManagerDep):
-    acc_lst = await manager.read(model=Account, ident="user_id", ident_val=int(user_id))
+    acc_lst = await manager.read(model=Accounts, ident="user_id", ident_val=int(user_id))
     log.debug("accounts list: %s", acc_lst)
     return acc_lst
 
@@ -76,7 +76,7 @@ async def accounts_list(user_id: getUserFromTokenDep, manager: dbManagerDep):
     },
 )
 async def create_account(acc: AccInput, manager: dbManagerDep):
-    acc_from_db = await manager.create(model=Account, **acc.model_dump())
+    acc_from_db = await manager.create(model=Accounts, **acc.model_dump())
     log.debug(
         "returning acc: %s, %s", acc_from_db.get("id"), acc_from_db.get("user_id")
     )
@@ -99,10 +99,10 @@ async def delete_accounts(
 ):
     if ident is None:
         log.debug("ЗАПРОС НА УДАЛЕНИЕ ВСЕХ АККАУНТОВ")
-        await manager.delete(model=Account)
+        await manager.delete(model=Accounts)
     else:
         log.debug("УДАЛЕНИЕ АККАУНТА ПО %s = %s", ident, ident_val)
-        await manager.delete(model=Account, ident=ident, ident_val=ident_val)
+        await manager.delete(model=Accounts, ident=ident, ident_val=ident_val)
 
 @router.delete(
     "/{id_}",
@@ -119,7 +119,7 @@ async def delete_accounts(
 )
 async def delete_account_by_id(id_: int, manager: dbManagerDep):
     log.debug("ЗАПРСО НА УДАЛЕНИЕ АККАУНТА С ID: %s", id_)
-    acc = await manager.delete(model=Account, ident_val=id_)
+    acc = await manager.delete(model=Accounts, ident_val=id_)
     return acc
 
 @router.get("/load-csv")
@@ -131,5 +131,5 @@ async def get_csv_file(
     to_join: str | None = None,
 ):
     params = await manager.read(
-        model=ParOfAcc, ident=ident, ident_val=int(ident_val), to_join=to_join
+        model=Params, ident=ident, ident_val=int(ident_val), to_join=to_join
     )

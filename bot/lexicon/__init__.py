@@ -6,7 +6,7 @@ from .core_lexicon import ACCOUNT, AUTHENTICATION, COMMAND_CORE
 class Phrases(BaseModel):
     start: str = COMMAND_CORE["start"]
     help: str = COMMAND_CORE["help"]
-    # register: str = AUTHENTICATION["register"]
+    register: str = AUTHENTICATION["register"]
     login: str = AUTHENTICATION["login"]
     already_reg: str = AUTHENTICATION["already_registered"]
     user_not_exists: str = AUTHENTICATION["user_not_exists"]

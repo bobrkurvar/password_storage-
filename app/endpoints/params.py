@@ -1,13 +1,13 @@
 import logging
 from typing import Annotated, List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from app.endpoints.schemas.account import ParamInput, ParamOutput
 from app.exceptions.schemas import ErrorResponse
 from core.security import get_user_from_token
 from db import Crud, get_db_manager
-from db.models import ParOfAcc
+from db.models import Params
 
 router = APIRouter(tags=["Params of account"])
 log = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ async def get_param_by_criteria(
     to_join: str | None = None
 ):
     params = await manager.read(
-        model=ParOfAcc, ident=ident, ident_val=int(ident_val), to_join=to_join
+        model=Params, ident=ident, ident_val=int(ident_val), to_join=to_join
     )
     return params
 
@@ -53,7 +53,7 @@ async def get_param_by_criteria(
     },
 )
 async def get_param_by_id(id_: int, manager: dbManagerDep):
-    param = (await manager.read(model=ParOfAcc, ident_val=id_))[0]
+    param = (await manager.read(model=Params, ident_val=id_))[0]
     return param
 
 @router.post(
@@ -67,7 +67,7 @@ async def create_account_params(manager: dbManagerDep, params: ParamInput):
     params_dict = [item.model_dump() for item in params.items]
     [i.update(acc_id=params.acc_id) for i in params_dict]
     log.debug("params_dict: %s", params_dict)
-    response = await manager.create(model=ParOfAcc, seq_data=params_dict)
+    response = await manager.create(model=Params, seq_data=params_dict)
     return response
 
 @router.delete(
@@ -78,5 +78,5 @@ async def create_account_params(manager: dbManagerDep, params: ParamInput):
 )
 async def delete_account_params_by_account_id(manager: dbManagerDep, account_id: int):
     log.debug("Запрос на удаление параметров аккаунта с id: %s", account_id)
-    await manager.delete(model=ParOfAcc, ident="acc_id", ident_val=account_id)
+    await manager.delete(model=Params, ident="acc_id", ident_val=account_id)
 
