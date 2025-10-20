@@ -92,7 +92,7 @@ class Actions(Base):
     __tablename__ = "actions"
     action_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     action_name: Mapped[str] = mapped_column(nullable=False, unique=True)
-    action_description: Mapped[str]
+    action_description: Mapped[str] = mapped_column(nullable=True)
     user_action: Mapped[list["UsersActions"]] = relationship(
         "UsersActions", back_populates="action"
     )
@@ -116,7 +116,7 @@ class UsersActions(Base):
 class Roles(Base):
     __tablename__ = "roles"
     role_id: Mapped[int] = mapped_column(primary_key=True)
-    role_name: Mapped[str]
+    role_name: Mapped[str] = mapped_column(nullable=False, unique=True)
     role_permissions: Mapped[list["RolesPermissions"]] = relationship(
         "RolesPermissions", back_populates="roles"
     )
@@ -145,22 +145,22 @@ class UsersRoles(Base):
     roles: Mapped["Roles"] = relationship("Roles", back_populates="users_roles")
 
 
-class SharedAccounts(Base):
-    __tablename__ = "shared_accounts"
-    account_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("accounts.id"), primary_key=True
-    )
-    user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("pas_users.id"), primary_key=True
-    )
-    owner_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("pas_users.id"), nullable=False
-    )
-    can_edit: Mapped[bool] = mapped_column(default=False)
-    owner: Mapped["Users"] = relationship(
-        "Users", back_populates="shared", foreign_keys=[owner_id]
-    )
-    account: Mapped["Accounts"] = relationship("Accounts", back_populates="shared")
-    user: Mapped["Users"] = relationship(
-        "Users", back_populates="grantee", foreign_keys=[user_id]
-    )
+# class SharedAccounts(Base):
+#     __tablename__ = "shared_accounts"
+#     account_id: Mapped[int] = mapped_column(
+#         BigInteger, ForeignKey("accounts.id"), primary_key=True
+#     )
+#     user_id: Mapped[int] = mapped_column(
+#         BigInteger, ForeignKey("pas_users.id"), primary_key=True
+#     )
+#     owner_id: Mapped[int] = mapped_column(
+#         BigInteger, ForeignKey("pas_users.id"), nullable=False
+#     )
+#     can_edit: Mapped[bool] = mapped_column(default=False)
+#     owner: Mapped["Users"] = relationship(
+#         "Users", back_populates="shared", foreign_keys=[owner_id]
+#     )
+#     account: Mapped["Accounts"] = relationship("Accounts", back_populates="shared")
+#     user: Mapped["Users"] = relationship(
+#         "Users", back_populates="grantee", foreign_keys=[user_id]
+#     )
