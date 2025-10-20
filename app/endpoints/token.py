@@ -5,14 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.endpoints.schemas.user import OutputToken
-from core.security import (
-    create_access_token,
-    create_refresh_token,
-    getUserFromTokenDep,
-    verify,
-)
+from core.security import (create_access_token, create_refresh_token,
+                           getUserFromTokenDep, verify)
 from db import Crud, get_db_manager
-from db.models import User
+from db.models import Roles, User, UsersRoles
 
 router = APIRouter(
     tags=[
@@ -34,10 +30,14 @@ async def login_user(
 ):
     if user.client_id is None:
         log.debug("ПОИСК ПОЛЬЗОВАТЕЛЯ В БАЗЕ ПО USERNAME")
-        cur = (await manager.read(model=User, ident="username", ident_val=user.username))[0]
+        cur = (
+            await manager.read(model=User, ident="username", ident_val=user.username)
+        )[0]
     else:
         log.debug("ПОИСК ПОЛЬЗОВАТЕЛЯ В БАЗЕ ПО ID")
-        cur = (await manager.read(model=User, ident="id", ident_val=int(user.client_id)))[0]
+        cur = (
+            await manager.read(model=User, ident="id", ident_val=int(user.client_id))
+        )[0]
     log.debug("ПОЛЬЗОВАТЕЛЬ ИЗ БАЗЫ: %s", cur)
     log.debug(cur.get("password"))
     if verify(user.password, cur.get("password")):
@@ -55,8 +55,16 @@ async def login_user(
 )
 async def update_tokens(user_id: getUserFromTokenDep, manager: dbManagerDep):
     cur = await manager.read(model=User, ident="id", ident_val=int(user_id))
+    roles = await manager.read(
+        model=Roles, ident="user_id", ident_val=int(user_id), to_join="UsersRoles"
+    )
+    log.debug("user roles: %s", roles)
     if cur:
-        access_token = create_access_token({"sub": user_id, "type": "access"})
-        refresh_token = create_refresh_token({"sub": user_id, "type": "refresh"})
+        access_token = create_access_token(
+            {"sub": user_id, "roles": roles, "type": "access"}
+        )
+        refresh_token = create_refresh_token(
+            {"sub": user_id, "roles": roles, "type": "refresh"}
+        )
         return {"access_token": access_token, "refresh_token": refresh_token}
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
