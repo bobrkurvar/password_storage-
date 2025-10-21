@@ -69,7 +69,6 @@ async def update_tokens(user_id: getUserFromTokenDep, manager: dbManagerDep):
     roles = await manager.read(
         model=Roles, ident="user_id", ident_val=int(user_id), to_join="users_roles"
     )
-    roles = [role.get("role_id") for role in roles]
     log.debug("user roles: %s", roles)
     if cur:
         access_token = create_access_token(

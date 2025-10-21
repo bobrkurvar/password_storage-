@@ -27,7 +27,7 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
 
 @router.get(
-    "/{id_}",
+    "/{_id}",
     dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="получение одного аккаунта",
@@ -40,7 +40,7 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
     },
 )
 async def account_by_id(id_: int, manager: dbManagerDep):
-    account = await manager.read(model=Accounts, ident=id_)
+    account = await manager.read(model=Accounts, ident=_id)
     return account
 
 
