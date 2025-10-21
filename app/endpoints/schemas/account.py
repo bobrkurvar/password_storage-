@@ -28,25 +28,9 @@ class ParamOutput(BaseModel):
 class ParamItem(BaseModel):
     name: str
     content: int | str
-    secret: bool
+    secret: bool = False
 
 
 class ParamInput(BaseModel):
     acc_id: int
     items: List[ParamItem]
-
-
-# class ParamsInput(BaseModel):
-#     acc_id: int
-#     items: List[ParamItem]
-#     model_config = {
-#         "json_schema_extra": {
-#             "example": {
-#                 "acc_id": 123,
-#                 "items": [
-#                     {"id": 1, "name": "item1", "content": 10},
-#                     {"id": 2, "name": "item2", "content": 20},
-#                 ],
-#             }
-#         }
-#     }
