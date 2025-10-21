@@ -124,6 +124,9 @@ class Roles(Base):
         "UsersRoles", back_populates="roles"
     )
 
+    def model_dump(self):
+        return {"role_id": self.role_id, "role_name": self.role_name}
+
 
 class RolesPermissions(Base):
     __tablename__ = "roles_permissions"
@@ -143,6 +146,9 @@ class UsersRoles(Base):
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.role_id"), primary_key=True)
     users: Mapped["Users"] = relationship("Users", back_populates="roles")
     roles: Mapped["Roles"] = relationship("Roles", back_populates="users_roles")
+
+    def model_dump(self):
+        return {"user_id": self.user_id, "role_id": self.role_id}
 
 
 # class SharedAccounts(Base):

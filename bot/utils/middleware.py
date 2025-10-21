@@ -61,6 +61,7 @@ class DeleteUsersMessageMiddleware(BaseMiddleware):
         await event.delete()
         return result
 
+
 class FetchUserInfo(BaseMiddleware):
     async def __call__(
         self,
@@ -68,12 +69,11 @@ class FetchUserInfo(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ):
-        state, ext_api_manager = data.get('state'), data.get('ext_api_manager')
+        state, ext_api_manager = data.get("state"), data.get("ext_api_manager")
         user_info = (await state.get_data()).get("user_info", None)
         if user_info is None:
-            user_info = (await ext_api_manager.read('user', ident=event.from_user.id))
+            user_info = await ext_api_manager.read("user", ident=event.from_user.id)
             if user_info is not None:
-                user_info = user_info[0]
                 user_info = {"password": user_info.get("password")}
                 await state.update_data(user_info=user_info)
         result = await handler(event, data)

@@ -31,9 +31,7 @@ async def login_user(
     if user.client_id is None:
         ident = "username"
         log.debug("ПОИСК ПОЛЬЗОВАТЕЛЯ В БАЗЕ ПО USERNAME")
-        cur = (
-            await manager.read(model=Users, ident=ident, ident_val=user.username)
-        )[0]
+        cur = (await manager.read(model=Users, ident=ident, ident_val=user.username))[0]
     else:
         ident = "user_id"
         log.debug("ПОИСК ПОЛЬЗОВАТЕЛЯ В БАЗЕ ПО ID")
@@ -43,12 +41,21 @@ async def login_user(
     log.debug("ПОЛЬЗОВАТЕЛЬ ИЗ БАЗЫ: %s", cur)
     log.debug(cur.get("password"))
     ident_val = int(user.client_id) if ident == "user_id" else user.username
-    roles = (await manager.read(model=Roles, ident=ident, ident_val=ident_val, to_join="users_roles"))[0]
+    roles = (
+        await manager.read(
+            model=Roles, ident=ident, ident_val=ident_val, to_join="users_roles"
+        )
+    )[0]
+    log.debug("roles: %s", roles)
     if verify(user.password, cur.get("password")):
         log.debug("client_id: %s", user.client_id)
         access_token = create_access_token({"sub": user.client_id, "roles": roles})
         refresh_token = create_refresh_token({"sub": user.client_id, "roles": roles})
         return {"access_token": access_token, "refresh_token": refresh_token}
+    log.debug("НЕПРАВЛЬНЫЙ ПАРОЛЬ")
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND, detail="incorrect password"
+    )
 
 
 @router.post(
@@ -62,6 +69,7 @@ async def update_tokens(user_id: getUserFromTokenDep, manager: dbManagerDep):
     roles = await manager.read(
         model=Roles, ident="user_id", ident_val=int(user_id), to_join="users_roles"
     )
+    roles = [role.get("role_id") for role in roles]
     log.debug("user roles: %s", roles)
     if cur:
         access_token = create_access_token(

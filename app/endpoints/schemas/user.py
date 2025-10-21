@@ -19,11 +19,13 @@ class OutputToken(BaseModel):
     access_token: str
     refresh_token: str
 
+
 class UserRolesInput(BaseModel):
-    user_id: int
-    role_name: str
+    user_id: int | None = None
+    role_name: str | None = None
+    role_id: int | None = None
+
 
 class UserRolesOutput(BaseModel):
-    role_name: str
+    role_name: str | None = None
     role_id: int
-
