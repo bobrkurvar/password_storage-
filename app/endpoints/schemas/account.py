@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 class AccInput(BaseModel):
     id: int | None = None
     user_id: int
+    name: str
+    password: str
 
 
 class AccOutput(BaseModel):

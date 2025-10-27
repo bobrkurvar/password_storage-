@@ -60,16 +60,19 @@ async def process_input_account_password(
     except TelegramBadRequest:
         pass
     master_pas = data.get("master_password")
-    salt = data.get("user_info").get("salt")
-    password = encrypt_account_content(message.text, master_pas, salt)
+    salt_string = data.get("user_salt")
+    salt_bytes = base64.b64decode(salt_string.encode('utf-8'))
+    password_bytes = encrypt_account_content(message.text, master_pas, salt_bytes)
+    password_string = base64.b64encode(password_bytes).decode('utf-8')
     access_token = await state.storage.get_token(state.key, "access_token")
     acc = await ext_api_manager.create(
         prefix="account",
         access_token=access_token,
         user_id=message.from_user.id,
         name=name,
-        password=password,
+        password=password_string,
     )
+    await state.update_data(acc=acc)
 
 
 @router.message(StateFilter(InputAccount.params, InputAccount.input))
@@ -82,8 +85,10 @@ async def process_select_account_params(
     if cur_state == InputAccount.params:
         params_lst = message.text.split()
         params_lst = [i.strip() for i in params_lst]
-        if not ("password" in params_lst):
-            params_lst.append("password")
+        if "password" in params_lst:
+            params_lst.remove('password')
+        if "name" in params_lst:
+            params_lst.remove('name')
         data.update(params_lst=params_lst)
     else:
         params_lst = data.get("params_lst")
@@ -111,12 +116,7 @@ async def process_select_account_params(
                 data.pop("params_lst")
                 data.pop("params_dict_lst")
                 access_token = await state.storage.get_token(state.key, "access_token")
-                # acc = await ext_api_manager.create(
-                #     prefix="account",
-                #     access_token=access_token,
-                #     user_id=message.from_user.id,
-                # )
-                acc = data.get("acc")
+                acc = data.pop("acc")
                 acc_id = acc.get("id")
                 acc_name = acc.get("name")
                 log.debug("params: %s", params_dict_lst)
@@ -138,7 +138,6 @@ async def process_select_account_params(
                                 secret=param_dict.get("secret", False),
                             )
                         )
-
     try:
         await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
     except TelegramBadRequest:
@@ -179,7 +178,6 @@ async def press_button_accounts(
     data = await state.get_data()
     acc_params_lst = data.get("acc_params_lst")
     master_password = data.get("master_password")
-    salt = data.get("salt")
     if not acc_params_lst:
         access_token = await state.storage.get_token(state.key, "access_token")
         log.debug("token: %s", access_token)
