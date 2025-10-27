@@ -83,29 +83,70 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 #             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="не доступно")
 
 
-# 1. Из пароля делаем ключ
-def derive_key(password: str, salt: bytes) -> bytes:
+# # 1. Из пароля делаем ключ
+# def derive_key(password: str, salt: bytes) -> bytes:
+#     kdf = PBKDF2HMAC(
+#         algorithm=hashes.SHA256(),  # используем SHA-256
+#         length=32,  # длина ключа = 32 байта (256 бит)
+#         salt=salt,  # соль (16 байт случайных данных)
+#         iterations=100_000,  # количество итераций (чем больше, тем медленнее brute-force)
+#         backend=default_backend(),
+#     )
+#     return base64.urlsafe_b64encode(kdf.derive(password.encode()))
+#
+#
+# def encrypt(data: str, password: str) -> bytes:
+#     salt = os.urandom(16)  # соль для KDF
+#     key = derive_key(password, salt)
+#     f = Fernet(key)
+#     encrypted = f.encrypt(data.encode())
+#     return salt + encrypted
+#
+#
+# # 3. Расшифрование
+# def decrypt(token: bytes, password: str) -> str:
+#     salt, encrypted = token[:16], token[16:]
+#     key = derive_key(password, salt)
+#     f = Fernet(key)
+#     return f.decrypt(encrypted).decode()
+
+
+# --- 1. Генерация ключа из мастер-пароля пользователя ---
+def derive_master_key(user_password: str, salt: bytes) -> bytes:
+    """
+    Из пользовательского пароля (введённого при логине)
+    создаётся мастер-ключ, используемый для шифрования данных.
+    """
     kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),  # используем SHA-256
-        length=32,  # длина ключа = 32 байта (256 бит)
-        salt=salt,  # соль (16 байт случайных данных)
-        iterations=100_000,  # количество итераций (чем больше, тем медленнее brute-force)
-        backend=default_backend(),
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=200_000,
     )
-    return base64.urlsafe_b64encode(kdf.derive(password.encode()))
+    return base64.urlsafe_b64encode(kdf.derive(user_password.encode()))
 
 
-def encrypt(data: str, password: str) -> bytes:
-    salt = os.urandom(16)  # соль для KDF
-    key = derive_key(password, salt)
-    f = Fernet(key)
-    encrypted = f.encrypt(data.encode())
+# --- 2. Шифрование паролей аккаунтов с помощью мастер-ключа ---
+def encrypt_account_content(
+    account_password: str, master_password: str, salt: bytes | None = None
+) -> bytes:
+    """
+    Шифрует пароль аккаунта, используя мастер-пароль пользователя.
+    Возвращает salt + зашифрованные данные.
+    """
+    salt = os.urandom(16) if salt is None else salt
+    master_key = derive_master_key(master_password, salt)
+    f = Fernet(master_key)
+    encrypted = f.encrypt(account_password.encode())
     return salt + encrypted
 
 
-# 3. Расшифрование
-def decrypt(token: bytes, password: str) -> str:
+# --- 3. Расшифровка ---
+def decrypt_account_content(token: bytes, master_password: str) -> str:
+    """
+    Расшифровывает пароль аккаунта с помощью введённого мастер-пароля.
+    """
     salt, encrypted = token[:16], token[16:]
-    key = derive_key(password, salt)
-    f = Fernet(key)
+    master_key = derive_master_key(master_password, salt)
+    f = Fernet(master_key)
     return f.decrypt(encrypted).decode()

@@ -39,7 +39,7 @@ class Accounts(Base):
     user_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("pas_users.id", ondelete="CASCADE")
     )
-    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    password: Mapped[str] = mapped_column(nullable=False)
     name: Mapped[str] = mapped_column(nullable=False)
     user: Mapped["Users"] = relationship("Users", back_populates="accounts")
     params: Mapped[list["Params"]] = relationship(

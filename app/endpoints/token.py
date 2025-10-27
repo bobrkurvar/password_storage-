@@ -64,18 +64,23 @@ async def login_user(
     summary="обновление access и refresh токенов",
     response_model=OutputToken,
 )
-async def update_tokens(user_id: getUserFromTokenDep, manager: dbManagerDep):
-    cur = await manager.read(model=Users, ident="id", ident_val=int(user_id))
+async def update_tokens(user: getUserFromTokenDep, manager: dbManagerDep):
+    cur = await manager.read(
+        model=Users, ident="id", ident_val=int(user.get("user_id"))
+    )
     roles = await manager.read(
-        model=Roles, ident="user_id", ident_val=int(user_id), to_join="users_roles"
+        model=Roles,
+        ident="user_id",
+        ident_val=int(user.get("user_id")),
+        to_join="users_roles",
     )
     log.debug("user roles: %s", roles)
     if cur:
         access_token = create_access_token(
-            {"sub": user_id, "roles": roles, "type": "access"}
+            {"sub": user.get("user_id"), "roles": roles, "type": "access"}
         )
         refresh_token = create_refresh_token(
-            {"sub": user_id, "roles": roles, "type": "refresh"}
+            {"sub": user.get("user_id"), "roles": roles, "type": "refresh"}
         )
         return {"access_token": access_token, "refresh_token": refresh_token}
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")

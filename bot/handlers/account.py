@@ -12,7 +12,7 @@ from bot.filters import CallbackFactory
 from bot.filters.states import DeleteAccount, InputAccount
 from bot.lexicon import phrases
 from bot.utils.keyboards import get_inline_kb
-from core.security import decrypt, encrypt
+from core.security import decrypt_account_content, encrypt_account_content
 from utils.external import MyExternalApiForBot
 
 router = Router()
@@ -31,31 +31,45 @@ async def process_create_account(callback: CallbackQuery, state: FSMContext):
     await state.set_state(InputAccount.name)
     await state.update_data(msg=msg)
 
+
 @router.message(StateFilter(InputAccount.name))
 async def process_input_account_name(message: Message, state: FSMContext):
     kb = get_inline_kb("MENU")
-    msg = (await state.get_data()).get('msg')
+    msg = (await state.get_data()).get("msg")
     try:
         await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
     except TelegramBadRequest:
         pass
-    msg = (await message.answer(text=phrases.account_password, reply_markup=kb)).message_id
+    msg = (
+        await message.answer(text=phrases.account_password, reply_markup=kb)
+    ).message_id
     await state.update_data(name=message.text, msg=msg)
     await state.set_state(InputAccount.password)
 
+
 @router.message(StateFilter(InputAccount.password))
-async def process_input_account_password(message: Message, ext_api_manager: MyExternalApiForBot, state: FSMContext):
+async def process_input_account_password(
+    message: Message, ext_api_manager: MyExternalApiForBot, state: FSMContext
+):
     kb = get_inline_kb("MENU")
     data = await state.get_data()
-    msg = data.get('msg')
-    name = data.pop('name')
+    msg = data.get("msg")
+    name = data.pop("name")
     try:
         await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
     except TelegramBadRequest:
         pass
-    user_pas_hash = data.get('user_info').get('password')
-
-
+    master_pas = data.get("master_password")
+    salt = data.get("user_info").get("salt")
+    password = encrypt_account_content(message.text, master_pas, salt)
+    access_token = await state.storage.get_token(state.key, "access_token")
+    acc = await ext_api_manager.create(
+        prefix="account",
+        access_token=access_token,
+        user_id=message.from_user.id,
+        name=name,
+        password=password,
+    )
 
 
 @router.message(StateFilter(InputAccount.params, InputAccount.input))
@@ -82,9 +96,9 @@ async def process_select_account_params(
             if data.pop("secret", None):
                 master_password = data.get("user_info").get("password")
                 log.debug("Master Password: %s", master_password)
-                content = base64.urlsafe_b64encode(
-                    encrypt(message.text, master_password)
-                ).decode()
+                master_pas = data.get("user_info").get("password")
+                salt = data.get("user_info").get("salt")
+                content = encrypt_account_content(message.text, master_pas, salt)
                 param_dict.update(secret=True)
             param_dict.update(name=cur_param, content=content)
             log.debug("param dict: %s", param_dict)
@@ -97,11 +111,12 @@ async def process_select_account_params(
                 data.pop("params_lst")
                 data.pop("params_dict_lst")
                 access_token = await state.storage.get_token(state.key, "access_token")
-                acc = await ext_api_manager.create(
-                    prefix="account",
-                    access_token=access_token,
-                    user_id=message.from_user.id,
-                )
+                # acc = await ext_api_manager.create(
+                #     prefix="account",
+                #     access_token=access_token,
+                #     user_id=message.from_user.id,
+                # )
+                acc = data.get("acc")
                 acc_id = acc.get("id")
                 acc_name = acc.get("name")
                 log.debug("params: %s", params_dict_lst)
@@ -164,6 +179,7 @@ async def press_button_accounts(
     data = await state.get_data()
     acc_params_lst = data.get("acc_params_lst")
     master_password = data.get("user_info").get("password")
+    salt = data.get("user_info").get("salt")
     if not acc_params_lst:
         access_token = await state.storage.get_token(state.key, "access_token")
         log.debug("token: %s", access_token)
@@ -184,7 +200,8 @@ async def press_button_accounts(
                 if param.get("secret"):
                     encrypted_bytes = base64.urlsafe_b64decode(param.get("content"))
                     text += phrases.params_list.format(
-                        param.get("name"), decrypt(encrypted_bytes, master_password)
+                        param.get("name"),
+                        decrypt_account_content(encrypted_bytes, master_password),
                     )
                 else:
                     text += phrases.params_list.format(
@@ -196,7 +213,8 @@ async def press_button_accounts(
                 if param.get("secret"):
                     encrypted_bytes = base64.urlsafe_b64decode(param.get("content"))
                     text += phrases.params_list.format(
-                        param.get("name"), decrypt(encrypted_bytes, master_password)
+                        param.get("name"),
+                        decrypt_account_content(encrypted_bytes, master_password),
                     )
                 else:
                     text += phrases.params_list.format(

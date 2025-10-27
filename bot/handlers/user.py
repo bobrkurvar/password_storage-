@@ -104,6 +104,7 @@ async def process_input_password_for_sign_in(
             await state.update_data(msg=msg)
             await state.set_state(None)
             return
+        await state.update_data(master_password=message.text)
         access_token = tokens.get("access_token")
         access_time = 900
         await state.storage.set_token(
