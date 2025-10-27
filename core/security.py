@@ -9,12 +9,15 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from fastapi import Depends
+from fastapi import Depends, Request, status
+from fastapi.exceptions import HTTPException
 from fastapi.security.oauth2 import OAuth2PasswordBearer
 from passlib.hash import bcrypt
 
 from app.exceptions.custom_errors import UnauthorizedError
 from core import conf
+from core.config import BOT_ADMINS
+from db import Crud, get_db_manager
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login", auto_error=False)
 secret_key = conf.secret_key
@@ -57,17 +60,27 @@ def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
     try:
         payload = jwt.decode(token, secret_key, algorithms=algorithm)
         user_id = payload.get("sub")
+        roles = payload.get("roles")
         if user_id is None:
             log.debug("user_id is None")
             raise UnauthorizedError(validate=True)
+        user = {"user_id": user_id, "roles": roles}
     except jwt.ExpiredSignatureError:
         raise UnauthorizedError(refresh=True)
     except jwt.InvalidTokenError:
         raise UnauthorizedError(validate=True)
-    return user_id
+    return user
 
 
-getUserFromTokenDep = Annotated[int, Depends(get_user_from_token)]
+getUserFromTokenDep = Annotated[dict, Depends(get_user_from_token)]
+dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
+
+# def check_user_roles(request: Request, manager: dbManagerDep, user: getUserFromTokenDep):
+#     if request.method in ("DELETE", "PATH", "CREATE"):
+#         if ("admin" in user.get("roles") and user.get("user_id") in BOT_ADMINS) or user.get("user_id"):
+#             return user.get("user_id")
+#         else:
+#             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="не доступно")
 
 
 # 1. Из пароля делаем ключ
@@ -82,13 +95,12 @@ def derive_key(password: str, salt: bytes) -> bytes:
     return base64.urlsafe_b64encode(kdf.derive(password.encode()))
 
 
-# 2. Шифрование
 def encrypt(data: str, password: str) -> bytes:
     salt = os.urandom(16)  # соль для KDF
     key = derive_key(password, salt)
     f = Fernet(key)
     encrypted = f.encrypt(data.encode())
-    return salt + encrypted  # соль приклеиваем к началу, чтобы не хранить отдельно
+    return salt + encrypted
 
 
 # 3. Расшифрование

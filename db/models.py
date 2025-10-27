@@ -1,7 +1,7 @@
 from sqlalchemy import ForeignKey
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy.types import BigInteger
+from sqlalchemy.types import BigInteger, String
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -12,7 +12,7 @@ class Users(Base):
     __tablename__ = "pas_users"
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     username: Mapped[str]
-    password: Mapped[str]
+    password: Mapped[str] = mapped_column(String(256))
     accounts: Mapped[list["Accounts"]] = relationship("Accounts", back_populates="user")
     actions: Mapped[list["UsersActions"]] = relationship(
         "UsersActions", back_populates="user"
@@ -39,6 +39,8 @@ class Accounts(Base):
     user_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("pas_users.id", ondelete="CASCADE")
     )
+    password_hash: Mapped[str] = mapped_column(String(256))
+    name: Mapped[str]
     user: Mapped["Users"] = relationship("Users", back_populates="accounts")
     params: Mapped[list["Params"]] = relationship(
         "Params",

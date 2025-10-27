@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status
+from fastapi import status
 
 
 class UnauthorizedError(Exception):
@@ -20,5 +20,4 @@ class UnauthorizedError(Exception):
             )
         else:
             self.detail = f"Попытка не аутентифицированного доступа"
-        # super().__init__(status_code=self.status_code, detail=self.detail, headers=self.headers)
         super().__init__(self.detail)

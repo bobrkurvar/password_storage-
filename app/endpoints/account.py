@@ -7,7 +7,7 @@ from app.endpoints.schemas.account import AccInput, AccOutput
 from app.exceptions.schemas import ErrorResponse
 from core.security import get_user_from_token, getUserFromTokenDep
 from db import Crud, get_db_manager
-from db.models import Accounts, Params
+from db.models import Accounts
 
 router = APIRouter(
     tags=["Account"],
@@ -39,7 +39,7 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
         }
     },
 )
-async def account_by_id(id_: int, manager: dbManagerDep):
+async def account_by_id(_id: int, manager: dbManagerDep):
     account = await manager.read(model=Accounts, ident=_id)
     return account
 
@@ -57,7 +57,9 @@ async def account_by_id(id_: int, manager: dbManagerDep):
     },
 )
 async def accounts_list(user_id: getUserFromTokenDep, manager: dbManagerDep):
-    acc_lst = await manager.read(model=Accounts, ident="user_id", ident_val=int(user_id))
+    acc_lst = await manager.read(
+        model=Accounts, ident="user_id", ident_val=int(user_id)
+    )
     log.debug("accounts list: %s", acc_lst)
     return acc_lst
 
@@ -82,6 +84,7 @@ async def create_account(acc: AccInput, manager: dbManagerDep):
     )
     return acc_from_db
 
+
 @router.delete(
     "",
     dependencies=[Depends(get_user_from_token)],
@@ -104,6 +107,7 @@ async def delete_accounts(
         log.debug("УДАЛЕНИЕ АККАУНТА ПО %s = %s", ident, ident_val)
         await manager.delete(model=Accounts, ident=ident, ident_val=ident_val)
 
+
 @router.delete(
     "/{id_}",
     dependencies=[Depends(get_user_from_token)],
@@ -121,15 +125,3 @@ async def delete_account_by_id(id_: int, manager: dbManagerDep):
     log.debug("ЗАПРСО НА УДАЛЕНИЕ АККАУНТА С ID: %s", id_)
     acc = await manager.delete(model=Accounts, ident_val=id_)
     return acc
-
-@router.get("/load-csv")
-async def get_csv_file(
-    user_id: getUserFromTokenDep,
-    ident: str,
-    ident_val: int | str | None,
-    manager: dbManagerDep,
-    to_join: str | None = None,
-):
-    params = await manager.read(
-        model=Params, ident=ident, ident_val=int(ident_val), to_join=to_join
-    )
