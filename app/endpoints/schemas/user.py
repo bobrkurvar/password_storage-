@@ -7,12 +7,13 @@ class UserInput(BaseModel):
     id: int | None = None
     password: str
     username: str
+    salt: str
 
 
 class UserOutput(BaseModel):
     username: str
-    password: str
     id: int
+    salt: str
 
 
 class OutputToken(BaseModel):

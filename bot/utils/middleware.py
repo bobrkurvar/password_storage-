@@ -70,11 +70,12 @@ class FetchUserInfo(BaseMiddleware):
         data: dict[str, Any],
     ):
         state, ext_api_manager = data.get("state"), data.get("ext_api_manager")
-        user_info = (await state.get_data()).get("user_info", None)
-        if user_info is None:
+        user_salt = (await state.get_data()).get("user_salt", None)
+        if user_salt is None:
             user = await ext_api_manager.read("user", ident=event.from_user.id)
-            salt = user.get("salt")
-            if user_info is not None:
-                await state.update_data(salt=salt)
+            log.debug("User: %s", user)
+            if user is not None:
+                user_salt = user.get("salt")
+                await state.update_data(user_salt=user_salt)
         result = await handler(event, data)
         return result

@@ -1,3 +1,5 @@
+import os
+import base64
 import logging
 
 from aiogram import F, Router
@@ -45,7 +47,7 @@ async def press_button_sign_up(callback: CallbackQuery, state: FSMContext):
     text = "MENU"
     kb = get_inline_kb(text)
     data = await state.get_data()
-    user = data.get("user_info")
+    user = data.get("user_salt")
     if not user:
         msg = (
             await callback.message.edit_text(
@@ -67,11 +69,13 @@ async def process_input_password_for_sign_in(
     msg = (await state.get_data()).get("msg")
     cur_state = await state.get_state()
     if cur_state == InputUser.sign_up:
+        salt = base64.b64encode(os.urandom(16)).decode('utf-8')
         await ext_api_manager.create(
             prefix="user",
             id=message.from_user.id,
             password=get_password_hash(message.text),
             username=message.from_user.username,
+            salt=salt
         )
         role = (await ext_api_manager.read(prefix="user/roles", role_name="user"))[0]
         role_id = role.get("role_id")

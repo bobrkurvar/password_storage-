@@ -36,6 +36,7 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 )
 async def user_create(user: UserInput, manager: dbManagerDep):
     res = await manager.create(model=Users, **user.model_dump())
+    log.debug("user: %s", res)
     return res
 
 

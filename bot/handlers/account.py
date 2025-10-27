@@ -178,8 +178,8 @@ async def press_button_accounts(
 ):
     data = await state.get_data()
     acc_params_lst = data.get("acc_params_lst")
-    master_password = data.get("user_info").get("password")
-    salt = data.get("user_info").get("salt")
+    master_password = data.get("master_password")
+    salt = data.get("salt")
     if not acc_params_lst:
         access_token = await state.storage.get_token(state.key, "access_token")
         log.debug("token: %s", access_token)

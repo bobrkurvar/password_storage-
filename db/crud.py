@@ -42,7 +42,7 @@ class Crud:
             log.debug("ПЕРЕХВАТИЛ INTEGIRITYERROR")
             if err.orig.pgcode == "23505":
                 log.debug("ТАКАЯ СУЩНОСТЬ УЖЕ СУЩЕСТВУЕТ")
-                raise AlreadyExistsError(model.__name__, "id", tup.id)
+                raise AlreadyExistsError(model.__name__, "id", tup.get("id"))
             elif err.orig.pgcode == "23503":
                 log.debug("ВНЕШНИЙ КЛЮЧ НА НЕ СУЩЕСТВУЮЩЕЕ ПОЛЕ")
                 raise CustomForeignKeyViolationError(model.__name__, "doer_id", 3)

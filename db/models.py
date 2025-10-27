@@ -13,6 +13,7 @@ class Users(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     username: Mapped[str]
     password: Mapped[str] = mapped_column(String(256))
+    salt: Mapped[str] = mapped_column(nullable=False)
     accounts: Mapped[list["Accounts"]] = relationship("Accounts", back_populates="user")
     actions: Mapped[list["UsersActions"]] = relationship(
         "UsersActions", back_populates="user"
@@ -30,7 +31,7 @@ class Users(Base):
         return text
 
     def model_dump(self):
-        return {"id": self.id, "username": self.username, "password": self.password}
+        return {"id": self.id, "username": self.username, "salt": self.salt, "password": self.password}
 
 
 class Accounts(Base):
