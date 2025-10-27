@@ -7,8 +7,9 @@ class InputUser(StatesGroup):
     sign_in = State()
     sign_up = State()
 
-
 class InputAccount(StatesGroup):
+    name = State()
+    password = State()
     params = State()
     input = State()
 

@@ -26,10 +26,36 @@ log = logging.getLogger(__name__)
 async def process_create_account(callback: CallbackQuery, state: FSMContext):
     kb = get_inline_kb("MENU")
     msg = (
-        await callback.message.edit_text(text=phrases.account_params, reply_markup=kb)
+        await callback.message.edit_text(text=phrases.account_name, reply_markup=kb)
     ).message_id
-    await state.set_state(InputAccount.params)
+    await state.set_state(InputAccount.name)
     await state.update_data(msg=msg)
+
+@router.message(StateFilter(InputAccount.name))
+async def process_input_account_name(message: Message, state: FSMContext):
+    kb = get_inline_kb("MENU")
+    msg = (await state.get_data()).get('msg')
+    try:
+        await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
+    except TelegramBadRequest:
+        pass
+    msg = (await message.answer(text=phrases.account_password, reply_markup=kb)).message_id
+    await state.update_data(name=message.text, msg=msg)
+    await state.set_state(InputAccount.password)
+
+@router.message(StateFilter(InputAccount.password))
+async def process_input_account_password(message: Message, ext_api_manager: MyExternalApiForBot, state: FSMContext):
+    kb = get_inline_kb("MENU")
+    data = await state.get_data()
+    msg = data.get('msg')
+    name = data.pop('name')
+    try:
+        await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
+    except TelegramBadRequest:
+        pass
+    user_pas_hash = data.get('user_info').get('password')
+
+
 
 
 @router.message(StateFilter(InputAccount.params, InputAccount.input))

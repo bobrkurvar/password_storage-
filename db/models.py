@@ -39,8 +39,8 @@ class Accounts(Base):
     user_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("pas_users.id", ondelete="CASCADE")
     )
-    password_hash: Mapped[str] = mapped_column(String(256))
-    name: Mapped[str]
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    name: Mapped[str] = mapped_column(nullable=False)
     user: Mapped["Users"] = relationship("Users", back_populates="accounts")
     params: Mapped[list["Params"]] = relationship(
         "Params",
@@ -68,9 +68,9 @@ class Params(Base):
         BigInteger, ForeignKey("accounts.id", ondelete="CASCADE")
     )
     account: Mapped["Accounts"] = relationship("Accounts", back_populates="params")
-    name: Mapped[str]
-    secret: Mapped[bool]
-    content: Mapped[str]
+    name: Mapped[str] = mapped_column(nullable=False)
+    secret: Mapped[bool] = mapped_column(default=False)
+    content: Mapped[str] = mapped_column(nullable=False)
 
     def __str__(self):
         text = f"id: {self.id}, name: {self.name}, content: {self.content}"
