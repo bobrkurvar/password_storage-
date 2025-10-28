@@ -59,7 +59,7 @@ class Accounts(Base):
         return text
 
     def model_dump(self):
-        return {"id": self.id, "user_id": self.user_id}
+        return {"id": self.id, "user_id": self.user_id, "name": self.name, "password": self.password}
 
 
 class Params(Base):

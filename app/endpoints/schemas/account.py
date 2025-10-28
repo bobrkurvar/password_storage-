@@ -13,6 +13,8 @@ class AccInput(BaseModel):
 class AccOutput(BaseModel):
     id: int
     user_id: int
+    name: str
+    password: str
 
 
 class AccUpdate(BaseModel):

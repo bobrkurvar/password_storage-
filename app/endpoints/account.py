@@ -56,9 +56,9 @@ async def account_by_id(_id: int, manager: dbManagerDep):
         }
     },
 )
-async def accounts_list(user_id: getUserFromTokenDep, manager: dbManagerDep):
+async def accounts_list(user: getUserFromTokenDep, manager: dbManagerDep):
     acc_lst = await manager.read(
-        model=Accounts, ident="user_id", ident_val=int(user_id)
+        model=Accounts, ident="user_id", ident_val=int(user.get('user_id'))
     )
     log.debug("accounts list: %s", acc_lst)
     return acc_lst
