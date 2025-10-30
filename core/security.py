@@ -18,6 +18,7 @@ from app.exceptions.custom_errors import UnauthorizedError
 from core import conf
 from core.config import BOT_ADMINS
 from db import Crud, get_db_manager
+from db.models import AdminUser
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login", auto_error=False)
 secret_key = conf.secret_key
@@ -75,40 +76,16 @@ def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
 getUserFromTokenDep = Annotated[dict, Depends(get_user_from_token)]
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
-# def check_user_roles(request: Request, manager: dbManagerDep, user: getUserFromTokenDep):
-#     if request.method in ("DELETE", "PATH", "CREATE"):
-#         if ("admin" in user.get("roles") and user.get("user_id") in BOT_ADMINS) or user.get("user_id"):
-#             return user.get("user_id")
-#         else:
-#             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="не доступно")
 
-
-# # 1. Из пароля делаем ключ
-# def derive_key(password: str, salt: bytes) -> bytes:
-#     kdf = PBKDF2HMAC(
-#         algorithm=hashes.SHA256(),  # используем SHA-256
-#         length=32,  # длина ключа = 32 байта (256 бит)
-#         salt=salt,  # соль (16 байт случайных данных)
-#         iterations=100_000,  # количество итераций (чем больше, тем медленнее brute-force)
-#         backend=default_backend(),
-#     )
-#     return base64.urlsafe_b64encode(kdf.derive(password.encode()))
-#
-#
-# def encrypt(data: str, password: str) -> bytes:
-#     salt = os.urandom(16)  # соль для KDF
-#     key = derive_key(password, salt)
-#     f = Fernet(key)
-#     encrypted = f.encrypt(data.encode())
-#     return salt + encrypted
-#
-#
-# # 3. Расшифрование
-# def decrypt(token: bytes, password: str) -> str:
-#     salt, encrypted = token[:16], token[16:]
-#     key = derive_key(password, salt)
-#     f = Fernet(key)
-#     return f.decrypt(encrypted).decode()
+async def check_user_roles(
+    request: Request, manager: dbManagerDep, user: getUserFromTokenDep
+):
+    admin = await manager.read(model=AdminUser, ident=user.get("user_id"))
+    if request.method in ("DELETE", "PATH", "CREATE"):
+        if not admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="не доступно"
+            )
 
 
 # --- 1. Генерация ключа из мастер-пароля пользователя ---

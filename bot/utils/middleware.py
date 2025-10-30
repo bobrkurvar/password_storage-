@@ -79,3 +79,21 @@ class FetchUserInfo(BaseMiddleware):
                 await state.update_data(user_salt=user_salt)
         result = await handler(event, data)
         return result
+
+
+class FetchAdmins(BaseMiddleware):
+    async def __call__(
+        self,
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
+        event: TelegramObject,
+        data: dict[str, Any],
+    ):
+        state, ext_api_manager = data.get("state"), data.get("ext_api_manager")
+        admins = (await state.get()).get("admins", None)
+        if admins is None:
+            admins = await ext_api_manager.read(prefix="user/admins")
+        log.debug("admins: %s", admins)
+        admins = [i.get("id") for i in admins]
+        await state.update_data(admins=admins)
+        result = await handler(event, data)
+        return result

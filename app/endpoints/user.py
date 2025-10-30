@@ -3,11 +3,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from app.endpoints.schemas.user import (UserInput, UserOutput, UserRolesInput,
-                                        UserRolesOutput)
+from app.endpoints.schemas.user import (AdminsId, UserInput, UserOutput,
+                                        UserRolesInput, UserRolesOutput)
 from app.exceptions.schemas import ErrorResponse
 from db import Crud, get_db_manager
-from db.models import Roles, Users, UsersRoles
+from db.models import AdminUser, Roles, Users, UsersRoles
 
 router = APIRouter(
     tags=["User"],
@@ -38,6 +38,22 @@ async def user_create(user: UserInput, manager: dbManagerDep):
     res = await manager.create(model=Users, **user.model_dump())
     log.debug("user: %s", res)
     return res
+
+
+@router.get(
+    "/admins",
+    summary="список администраторов",
+    response_model=list[AdminsId],
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "detail": "Список администраторов пуст",
+            "model": ErrorResponse,
+        }
+    },
+)
+async def get_admins(manager: dbManagerDep):
+    result = await manager.read(model=AdminUser)
+    return result
 
 
 @router.get(

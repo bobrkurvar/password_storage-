@@ -1,6 +1,6 @@
-import os
 import base64
 import logging
+import os
 
 from aiogram import F, Router
 from aiogram.filters import StateFilter
@@ -13,7 +13,7 @@ from bot.filters.states import InputUser
 from bot.lexicon import phrases
 from bot.utils.keyboards import get_inline_kb
 from core.security import get_password_hash
-from utils import MyExternalApiForBot
+from shared import MyExternalApiForBot
 
 router = Router()
 
@@ -69,15 +69,17 @@ async def process_input_password_for_sign_in(
     msg = (await state.get_data()).get("msg")
     cur_state = await state.get_state()
     if cur_state == InputUser.sign_up:
-        salt = base64.b64encode(os.urandom(16)).decode('utf-8')
+        salt = base64.b64encode(os.urandom(16)).decode("utf-8")
         await ext_api_manager.create(
             prefix="user",
             id=message.from_user.id,
             password=get_password_hash(message.text),
             username=message.from_user.username,
-            salt=salt
+            salt=salt,
         )
-        role = (await ext_api_manager.read(prefix="user/roles", role_name="user"))[0]
+        admins = (await state.get_data()).get("admins")
+        role_name = "admin" if message.from_user.id in admins else "user"
+        role = (await ext_api_manager.read(prefix="user/roles", role_name=role_name))[0]
         role_id = role.get("role_id")
         log.debug("role_id: %s", role_id)
         await ext_api_manager.create(

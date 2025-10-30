@@ -31,7 +31,12 @@ class Users(Base):
         return text
 
     def model_dump(self):
-        return {"id": self.id, "username": self.username, "salt": self.salt, "password": self.password}
+        return {
+            "id": self.id,
+            "username": self.username,
+            "salt": self.salt,
+            "password": self.password,
+        }
 
 
 class Accounts(Base):
@@ -59,7 +64,12 @@ class Accounts(Base):
         return text
 
     def model_dump(self):
-        return {"id": self.id, "user_id": self.user_id, "name": self.name, "password": self.password}
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "name": self.name,
+            "password": self.password,
+        }
 
 
 class Params(Base):
@@ -152,6 +162,14 @@ class UsersRoles(Base):
 
     def model_dump(self):
         return {"user_id": self.user_id, "role_id": self.role_id}
+
+
+class AdminUser(Base):
+    __tablename__ = "admin_users"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+
+    def model_dump(self):
+        return {"id": self.id}
 
 
 # class SharedAccounts(Base):

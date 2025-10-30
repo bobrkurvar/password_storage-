@@ -13,7 +13,7 @@ from bot.filters.states import DeleteAccount, InputAccount
 from bot.lexicon import phrases
 from bot.utils.keyboards import get_inline_kb
 from core.security import decrypt_account_content, encrypt_account_content
-from utils.external import MyExternalApiForBot
+from shared.external import MyExternalApiForBot
 
 router = Router()
 log = logging.getLogger(__name__)

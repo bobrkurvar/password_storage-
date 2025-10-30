@@ -6,12 +6,12 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from redis import exceptions
-from redis.asyncio import Redis
 
 from bot.filters.states import CustomRedisStorage
 from bot.handlers import main_router
 from core import conf
-from utils import ext_api_manager
+from shared import ext_api_manager
+from shared.redis import redis
 
 bot = Bot(conf.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 log = logging.getLogger(__name__)
@@ -20,8 +20,6 @@ log = logging.getLogger(__name__)
 async def main():
     try:
         try:
-            host = conf.redis_host
-            redis = Redis(host=host)
             await redis.ping()
             storage = CustomRedisStorage(redis=redis, state_ttl=3600)
         except exceptions.ConnectionError:

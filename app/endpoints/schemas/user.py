@@ -30,3 +30,7 @@ class UserRolesInput(BaseModel):
 class UserRolesOutput(BaseModel):
     role_name: str | None = None
     role_id: int
+
+
+class AdminsId(BaseModel):
+    id: int
