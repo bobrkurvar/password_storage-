@@ -61,9 +61,9 @@ async def process_input_account_password(
         pass
     master_pas = data.get("master_password")
     salt_string = data.get("user_salt")
-    salt_bytes = base64.b64decode(salt_string.encode('utf-8'))
+    salt_bytes = base64.b64decode(salt_string.encode("utf-8"))
     password_bytes = encrypt_account_content(message.text, master_pas, salt_bytes)
-    password_string = base64.b64encode(password_bytes).decode('utf-8')
+    password_string = base64.b64encode(password_bytes).decode("utf-8")
     access_token = await state.storage.get_token(state.key, "access_token")
     acc = await ext_api_manager.create(
         prefix="account",
@@ -72,14 +72,14 @@ async def process_input_account_password(
         name=name,
         password=password_string,
     )
-    msg = data.get('msg')
+    msg = data.get("msg")
     try:
         await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
     except TelegramBadRequest:
         pass
     msg = (await message.answer(phrases.account_params, reply_markup=kb)).message_id
-    acc = {"acc_id": acc.get("id"), "name": acc.get("name")}
-    await state.update_data(msg=msg, acc=acc)
+    # acc = {"acc_id": acc.get("id"), "name": acc.get("name")}
+    await state.update_data(msg=msg)
     await state.set_state(InputAccount.params)
 
 
@@ -92,11 +92,11 @@ async def process_select_account_params(
     msg = data.get("msg")
     if cur_state == InputAccount.params:
         params_lst = message.text.split()
-        params_lst = [i.strip() for i in params_lst if i.strip() != '']
+        params_lst = [i.strip() for i in params_lst if i.strip() != ""]
         if "password" in params_lst:
-            params_lst.remove('password')
+            params_lst.remove("password")
         if "name" in params_lst:
-            params_lst.remove('name')
+            params_lst.remove("name")
         data.update(params_lst=params_lst)
     else:
         params_lst = data.get("params_lst")
@@ -110,9 +110,9 @@ async def process_select_account_params(
                 master_password = data.get("master_password")
                 log.debug("Master Password: %s", master_password)
                 salt = data.get("user_salt")
-                salt = base64.b64decode(salt.encode('utf-8'))
+                salt = base64.b64decode(salt.encode("utf-8"))
                 content = encrypt_account_content(message.text, master_password, salt)
-                content = base64.b64encode(content).decode('utf-8')
+                content = base64.b64encode(content).decode("utf-8")
                 param_dict.update(secret=True)
             param_dict.update(name=cur_param, content=content)
             log.debug("param dict: %s", param_dict)
@@ -125,7 +125,7 @@ async def process_select_account_params(
                 data.pop("params_lst")
                 data.pop("params_dict_lst")
                 access_token = await state.storage.get_token(state.key, "access_token")
-                acc = data.pop("acc")
+                acc = data.pop("params")
                 acc_id = acc.get("id")
                 acc_name = acc.get("name")
                 log.debug("params: %s", params_dict_lst)
@@ -191,32 +191,53 @@ async def press_button_accounts(
     if not acc_params_lst:
         access_token = await state.storage.get_token(state.key, "access_token")
         log.debug("token: %s", access_token)
-        acc = await ext_api_manager.read(prefix='account', access_token=access_token, ident='user_id', ident_val=callback.from_user.id)
-        acc_params_lst = []
-        for i in acc:
-            log.debug("acc: %s", i)
-            # password = i.get("password")
-            # log.debug("password from db: %s", password)
-            # password_bytes = base64.b64decode(password)
-            # log.debug("password_bytes: %s", password_bytes)
-            # password = decrypt_account_content(password_bytes, master_password)
-            acc_params_lst.append({'name': 'name', 'content': i.get('name'), 'secret': i.get('secret')})
-            acc_params_lst.append({'name': 'password', 'content': i.get("password"), 'secret': i.get('secret')})
-        extra_params_lst = await ext_api_manager.read(
-            prefix="account/params",
+        acc = await ext_api_manager.read(
+            prefix="account",
             access_token=access_token,
             ident="user_id",
             ident_val=callback.from_user.id,
-            to_join="account",
         )
-        if extra_params_lst is not None: acc_params_lst += extra_params_lst
+        acc_params_lst = []
+        if acc:
+            for i in acc:
+                log.debug("acc: %s", i)
+                acc_params_lst.append(
+                    {
+                        "name": "name",
+                        "content": i.get("name"),
+                        "secret": i.get("secret"),
+                        "acc_id": i.get("id"),
+                    }
+                )
+                acc_params_lst.append(
+                    {
+                        "name": "password",
+                        "content": i.get("password"),
+                        "secret": i.get("secret"),
+                        "acc_id": i.get("id"),
+                    }
+                )
+            extra_params_lst = await ext_api_manager.read(
+                prefix="account/params",
+                access_token=access_token,
+                ident="user_id",
+                ident_val=callback.from_user.id,
+                to_join="account",
+            )
+            if extra_params_lst is not None:
+                extra_params_lst = [
+                    i
+                    for i in extra_params_lst
+                    if i.get("name") not in ("name", "password")
+                ]
+                acc_params_lst += extra_params_lst
         data.update(acc_params_lst=acc_params_lst)
     if acc_params_lst:
         text = "<b>Список аккаунтов:\n</b>"
         acc_id = acc_params_lst[0].get("acc_id")
         text += f"account with id: {acc_id}:\n"
         for param in acc_params_lst:
-            if param.get("secret") or param.get('name') == 'password':
+            if param.get("secret") or param.get("name") == "password":
                 encrypted_bytes = base64.urlsafe_b64decode(param.get("content"))
                 text += phrases.params_list.format(
                     param.get("name"),
