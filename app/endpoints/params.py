@@ -9,14 +9,30 @@ from core.security import get_user_from_token
 from db import Crud, get_db_manager
 from db.models import Params
 
-router = APIRouter(tags=["Params of account"])
+router = APIRouter(
+    tags=["Params of account"],
+    dependencies=[Depends(get_user_from_token)],
+    responses={
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "detail": "Unexpected error",
+            "model": ErrorResponse,
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "detail": "Unauthorized error",
+            "model": ErrorResponse,
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "detail": "Role error",
+            "model": ErrorResponse
+        }
+    },
+)
 log = logging.getLogger(__name__)
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
 
 @router.get(
     "",
-    dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="Чтение параметров по критериям поиска",
     response_model=List[ParamOutput],
@@ -41,7 +57,6 @@ async def get_param_by_criteria(
 
 @router.get(
     "/{id_}",
-    dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="чтение параметра по id",
     response_model=ParamOutput,
@@ -58,7 +73,6 @@ async def get_param_by_id(id_: int, manager: dbManagerDep):
 
 @router.post(
     "",
-    dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="Создание параметров для аккаунта",
     response_model=List[ParamOutput],
@@ -72,7 +86,6 @@ async def create_account_params(manager: dbManagerDep, params: ParamInput):
 
 @router.delete(
     "",
-    dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Удаление параметров аккаунта"
 )

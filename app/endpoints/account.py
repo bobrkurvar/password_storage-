@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, status
 
 from app.endpoints.schemas.account import AccInput, AccOutput
 from app.exceptions.schemas import ErrorResponse
-from core.security import get_user_from_token, getUserFromTokenDep
+from core.security import get_user_from_token, getUserFromTokenDep, getUserRolesDep, check_user_roles
 from db import Crud, get_db_manager
 from db.models import Accounts
 
@@ -20,7 +20,12 @@ router = APIRouter(
             "detail": "Unauthorized error",
             "model": ErrorResponse,
         },
+        status.HTTP_403_FORBIDDEN: {
+            "detail": "Role error",
+            "model": ErrorResponse
+        }
     },
+    dependencies=[Depends(check_user_roles)],
 )
 log = logging.getLogger(__name__)
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
@@ -28,7 +33,6 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
 @router.get(
     "/{_id}",
-    dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="получение одного аккаунта",
     response_model=AccOutput,
@@ -56,7 +60,8 @@ async def account_by_id(_id: int, manager: dbManagerDep):
         }
     },
 )
-async def accounts_list(user: getUserFromTokenDep, manager: dbManagerDep):
+async def accounts_list(user: getUserRolesDep, manager: dbManagerDep):
+    log.debug(f"получение списка аккаунтов для пользователя с {user.get("id")}")
     acc_lst = await manager.read(
         model=Accounts, ident="user_id", ident_val=int(user.get('user_id'))
     )
@@ -66,7 +71,6 @@ async def accounts_list(user: getUserFromTokenDep, manager: dbManagerDep):
 
 @router.post(
     "",
-    dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_201_CREATED,
     summary="Создание аккаунта",
     response_model=AccOutput,
@@ -87,7 +91,6 @@ async def create_account(acc: AccInput, manager: dbManagerDep):
 
 @router.delete(
     "",
-    dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_204_NO_CONTENT,
     summary="удаление аккаунтов по критерию поиска",
     responses={
@@ -110,7 +113,6 @@ async def delete_accounts(
 
 @router.delete(
     "/{id_}",
-    dependencies=[Depends(get_user_from_token)],
     status_code=status.HTTP_200_OK,
     summary="Удаление одного аккаунта",
     response_model=AccOutput,

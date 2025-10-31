@@ -16,7 +16,6 @@ from passlib.hash import bcrypt
 
 from app.exceptions.custom_errors import UnauthorizedError
 from core import conf
-from core.config import BOT_ADMINS
 from db import Crud, get_db_manager
 from db.models import AdminUser
 
@@ -80,13 +79,16 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 async def check_user_roles(
     request: Request, manager: dbManagerDep, user: getUserFromTokenDep
 ):
-    admin = await manager.read(model=AdminUser, ident=user.get("user_id"))
+    admin = await manager.read(model=AdminUser, ident_val=user.get("user_id"))
     if request.method in ("DELETE", "PATH", "CREATE"):
+        log.debug("Проверка роли для методов delete, path, create")
         if not admin:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="не доступно"
             )
+    return user
 
+getUserRolesDep = Annotated[dict, Depends(check_user_roles)]
 
 # --- 1. Генерация ключа из мастер-пароля пользователя ---
 def derive_master_key(user_password: str, salt: bytes) -> bytes:
