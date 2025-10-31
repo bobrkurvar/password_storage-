@@ -89,11 +89,12 @@ class FetchAdmins(BaseMiddleware):
         data: dict[str, Any],
     ):
         state, ext_api_manager = data.get("state"), data.get("ext_api_manager")
-        admins = (await state.get()).get("admins", None)
+        admins = (await state.get_data()).get("admins", None)
         if admins is None:
             admins = await ext_api_manager.read(prefix="user/admins")
+            if admins:
+                admins = [i.get("id") for i in admins]
         log.debug("admins: %s", admins)
-        admins = [i.get("id") for i in admins]
         await state.update_data(admins=admins)
         result = await handler(event, data)
         return result

@@ -52,6 +52,7 @@ async def user_create(user: UserInput, manager: dbManagerDep):
     },
 )
 async def get_admins(manager: dbManagerDep):
+    log.debug("получение списка администраторов")
     result = await manager.read(model=AdminUser)
     return result
 

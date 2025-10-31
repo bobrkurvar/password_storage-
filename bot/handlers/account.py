@@ -78,8 +78,9 @@ async def process_input_account_password(
     except TelegramBadRequest:
         pass
     msg = (await message.answer(phrases.account_params, reply_markup=kb)).message_id
-    # acc = {"acc_id": acc.get("id"), "name": acc.get("name")}
-    await state.update_data(msg=msg)
+    data.update(msg=msg, acc=acc)
+    log.debug("data after input password: %s", data)
+    await state.set_data(data)
     await state.set_state(InputAccount.params)
 
 
@@ -125,7 +126,7 @@ async def process_select_account_params(
                 data.pop("params_lst")
                 data.pop("params_dict_lst")
                 access_token = await state.storage.get_token(state.key, "access_token")
-                acc = data.pop("params")
+                acc = data.pop("acc")
                 acc_id = acc.get("id")
                 acc_name = acc.get("name")
                 log.debug("params: %s", params_dict_lst)
@@ -147,6 +148,7 @@ async def process_select_account_params(
                                 secret=param_dict.get("secret", False),
                             )
                         )
+                    data.update(acc_params_lst=acc_params_lst)
     try:
         await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
     except TelegramBadRequest:
@@ -300,6 +302,7 @@ async def process_delete_account(
     callback_data: CallbackFactory,
 ):
     kb = get_inline_kb("MENU")
+    data = await state.get_data()
     access_token = await state.storage.get_token(state.key, "access_token")
     log.debug("token: %s", access_token)
     if callback_data.act.lower() == "all":
@@ -309,18 +312,21 @@ async def process_delete_account(
             ident_val=callback.from_user.id,
             access_token=access_token,
         )
+        data.pop("acc_params_lst")
     else:
         await ext_api_manager.remove(
             "account", ident=callback_data.account_id, access_token=access_token
         )
+        acc_params_lst = data.get("acc_params_lst")
+        acc_params_lst = [
+            item
+            for item in acc_params_lst
+            if item.get("acc_id") != callback_data.account_id
+        ]
+        data.update(acc_params_lst=acc_params_lst)
     msg = (
         await callback.message.edit_text(text="account deleted", reply_markup=kb)
     ).message_id
-    acc_params_lst: list = (await state.get_data()).get("acc_params_lst")
-    acc_params_lst = [
-        item
-        for item in acc_params_lst
-        if item.get("acc_id") != callback_data.account_id
-    ]
-    await state.update_data(msg=msg, acc_params_lst=acc_params_lst)
+    data.update(msg=msg)
+    await state.set_data(data)
     await state.set_state(None)
