@@ -12,20 +12,20 @@ from db.models import Params
 router = APIRouter(
     tags=["Params of account"],
     dependencies=[Depends(get_user_from_token)],
-    responses={
-        status.HTTP_500_INTERNAL_SERVER_ERROR: {
-            "detail": "Unexpected error",
-            "model": ErrorResponse,
-        },
-        status.HTTP_401_UNAUTHORIZED: {
-            "detail": "Unauthorized error",
-            "model": ErrorResponse,
-        },
-        status.HTTP_403_FORBIDDEN: {
-            "detail": "Role error",
-            "model": ErrorResponse
-        }
-    },
+    # responses={
+    #     status.HTTP_500_INTERNAL_SERVER_ERROR: {
+    #         "detail": "Unexpected error",
+    #         "model": ErrorResponse,
+    #     },
+    #     status.HTTP_401_UNAUTHORIZED: {
+    #         "detail": "Unauthorized error",
+    #         "model": ErrorResponse,
+    #     },
+    #     status.HTTP_403_FORBIDDEN: {
+    #         "detail": "Role error",
+    #         "model": ErrorResponse
+    #     }
+    # },
 )
 log = logging.getLogger(__name__)
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
@@ -47,7 +47,7 @@ async def get_param_by_criteria(
     manager: dbManagerDep,
     ident: str,
     ident_val: str | int | None,
-    to_join: str | None = None
+    to_join: str | None = None,
 ):
     params = await manager.read(
         model=Params, ident=ident, ident_val=int(ident_val), to_join=to_join
@@ -71,6 +71,7 @@ async def get_param_by_id(id_: int, manager: dbManagerDep):
     param = (await manager.read(model=Params, ident_val=id_))[0]
     return param
 
+
 @router.post(
     "",
     status_code=status.HTTP_200_OK,
@@ -84,12 +85,10 @@ async def create_account_params(manager: dbManagerDep, params: ParamInput):
     response = await manager.create(model=Params, seq_data=params_dict)
     return response
 
+
 @router.delete(
-    "",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Удаление параметров аккаунта"
+    "", status_code=status.HTTP_204_NO_CONTENT, summary="Удаление параметров аккаунта"
 )
 async def delete_account_params_by_account_id(manager: dbManagerDep, account_id: int):
     log.debug("Запрос на удаление параметров аккаунта с id: %s", account_id)
     await manager.delete(model=Params, ident="acc_id", ident_val=account_id)
-
