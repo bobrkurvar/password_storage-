@@ -17,7 +17,7 @@ from passlib.hash import bcrypt
 from app.exceptions.custom_errors import UnauthorizedError
 from core import conf
 from db import Crud, get_db_manager
-from db.models import AdminUser, Roles, UsersRoles
+from db.models import Roles
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login", auto_error=False)
 secret_key = conf.secret_key

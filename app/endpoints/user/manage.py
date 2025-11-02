@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, status
 from app.endpoints.schemas.user import (UserOutput, UserRolesInput,
                                         UserRolesOutput)
 from app.exceptions.schemas import ErrorResponse
+from core.security import make_role_checker
 from db import Crud, get_db_manager
 from db.models import Roles, Users, UsersRoles
 
@@ -17,46 +18,10 @@ router = APIRouter(
             "model": ErrorResponse,
         },
     },
+    dependencies=[Depends(make_role_checker(required_role=["admin", "moderator"]))],
 )
 log = logging.getLogger(__name__)
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
-
-
-@router.get(
-    "/{_id}/roles",
-    status_code=status.HTTP_200_OK,
-    summary="Чтение ролей пользователя по id",
-    response_model=list[UserRolesOutput],
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "detail": "У пользователя нет ролей",
-            "model": ErrorResponse,
-        }
-    },
-)
-async def read_user_roles(_id: int, manager: dbManagerDep):
-    result = await manager.read(
-        model=Roles, ident="user_id", ident_val=_id, to_join="users_roles"
-    )
-    return result
-
-
-@router.get(
-    "/{_id}",
-    status_code=status.HTTP_200_OK,
-    summary="Получение пользователя по id",
-    response_model=UserOutput,
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "detail": "Пользователь не найден",
-            "model": ErrorResponse,
-        }
-    },
-)
-async def read_user_by_id(_id: int, manager: dbManagerDep):
-    user = (await manager.read(model=Users, ident="id", ident_val=_id))[0]
-    log.debug("Пользователь получен %s, %s", user.get("id"), user.get("username"))
-    return user
 
 
 @router.get(

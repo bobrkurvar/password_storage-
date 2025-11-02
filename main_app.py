@@ -2,7 +2,6 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
-from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 
 from app.endpoints import main_router
@@ -11,12 +10,18 @@ from db import get_db_manager
 from db.exceptions import *
 from shared.redis import close_redis, init_redis
 
+dep = []
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     redis = await init_redis()
     if redis:
+        from fastapi_limiter import FastAPILimiter
+
         await FastAPILimiter.init(redis)
+        dep.append(Depends(RateLimiter(times=5, seconds=10)))
+        app.state.redis = redis
     else:
         log.debug("don't init ratelimiter")
 
@@ -30,9 +35,7 @@ async def lifespan(app: FastAPI):
 
 log = logging.getLogger(__name__)
 
-app = FastAPI(
-    lifespan=lifespan, dependencies=[Depends(RateLimiter(times=5, seconds=10))]
-)
+app = FastAPI(lifespan=lifespan, dependencies=dep)
 
 app.include_router(main_router)
 app.add_exception_handler(NotFoundError, not_found_in_db_exceptions_handler)

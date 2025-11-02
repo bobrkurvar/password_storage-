@@ -5,18 +5,11 @@ from fastapi import APIRouter, Depends, status
 
 from app.endpoints.schemas.user import UserInput, UserOutput, UserRolesOutput
 from app.exceptions.schemas import ErrorResponse
+from core.security import get_user_from_token
 from db import Crud, get_db_manager
 from db.models import Roles, Users
 
-router = APIRouter(
-    tags=["own"],
-    # responses={
-    #     status.HTTP_500_INTERNAL_SERVER_ERROR: {
-    #         "detail": "Unexpected error",
-    #         "model": ErrorResponse,
-    #     },
-    # },
-)
+router = APIRouter(tags=["own"], dependencies=[Depends(get_user_from_token)])
 log = logging.getLogger(__name__)
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 

@@ -11,7 +11,7 @@ class Base(AsyncAttrs, DeclarativeBase):
 class Users(Base):
     __tablename__ = "pas_users"
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    username: Mapped[str]
+    username: Mapped[str] = mapped_column(unique=True)
     password: Mapped[str] = mapped_column(String(256))
     salt: Mapped[str] = mapped_column(nullable=False)
     accounts: Mapped[list["Accounts"]] = relationship("Accounts", back_populates="user")
