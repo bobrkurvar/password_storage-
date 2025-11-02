@@ -1,11 +1,11 @@
 import logging
-from typing import Annotated, List
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
 from app.endpoints.schemas.account import AccInput, AccOutput
 from app.exceptions.schemas import ErrorResponse
-from core.security import get_user_from_token, getUserFromTokenDep, getUserRolesDep, check_user_roles
+from core.security import get_user_from_token, getUserFromTokenDep, make_role_checker
 from db import Crud, get_db_manager
 from db.models import Accounts
 
@@ -25,14 +25,14 @@ router = APIRouter(
             "model": ErrorResponse
         }
     },
-    dependencies=[Depends(check_user_roles)],
+    dependencies=[Depends(make_role_checker(model=Accounts))],
 )
 log = logging.getLogger(__name__)
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
 
 @router.get(
-    "/{_id}",
+    "/{id_}",
     status_code=status.HTTP_200_OK,
     summary="получение одного аккаунта",
     response_model=AccOutput,
@@ -42,9 +42,11 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
             "model": ErrorResponse,
         }
     },
+    dependencies=[Depends(make_role_checker(param="id_", model=Accounts, ident="user_id"))]
 )
-async def account_by_id(_id: int, manager: dbManagerDep):
-    account = await manager.read(model=Accounts, ident=_id)
+async def account_by_id(id_: int, manager: dbManagerDep):
+    log.debug("чтение аккаунта по id %s", id_)
+    account = (await manager.read(model=Accounts, ident='id', ident_val=id_))[0]
     return account
 
 
@@ -52,7 +54,7 @@ async def account_by_id(_id: int, manager: dbManagerDep):
     "",
     status_code=status.HTTP_200_OK,
     summary="Получение списка аккаунтов",
-    response_model=List[AccOutput],
+    response_model=list[AccOutput],
     responses={
         status.HTTP_404_NOT_FOUND: {
             "detail": "Список задач пуст",
@@ -60,12 +62,12 @@ async def account_by_id(_id: int, manager: dbManagerDep):
         }
     },
 )
-async def accounts_list(user: getUserRolesDep, manager: dbManagerDep):
-    log.debug(f"получение списка аккаунтов для пользователя с {user.get("id")}")
+async def accounts_list(user: Annotated[dict, Depends(make_role_checker(model=Accounts, ident="user_id"))],
+                        manager: dbManagerDep):
+    log.debug(f"получение списка аккаунтов для пользователя с {user.get("user_id")}")
     acc_lst = await manager.read(
         model=Accounts, ident="user_id", ident_val=int(user.get('user_id'))
     )
-    log.debug("accounts list: %s", acc_lst)
     return acc_lst
 
 
@@ -122,6 +124,7 @@ async def delete_accounts(
             "model": ErrorResponse,
         }
     },
+    dependencies=[Depends(make_role_checker(model=Accounts, ident="user_id"))]
 )
 async def delete_account_by_id(id_: int, manager: dbManagerDep):
     log.debug("ЗАПРСО НА УДАЛЕНИЕ АККАУНТА С ID: %s", id_)

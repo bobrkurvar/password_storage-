@@ -17,7 +17,7 @@ from passlib.hash import bcrypt
 from app.exceptions.custom_errors import UnauthorizedError
 from core import conf
 from db import Crud, get_db_manager
-from db.models import AdminUser
+from db.models import AdminUser, UsersRoles, Roles
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login", auto_error=False)
 secret_key = conf.secret_key
@@ -57,18 +57,22 @@ def create_refresh_token(data: dict, expires_delta: timedelta = None) -> str:
 
 
 def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
+    log.debug("Starting get_user_from_token")
     try:
+        log.debug("token %s", token)
         payload = jwt.decode(token, secret_key, algorithms=algorithm)
+        log.debug("Decoded payload: %s", payload)
         user_id = payload.get("sub")
-        roles = payload.get("roles")
+        #roles = payload.get("roles")
         if user_id is None:
             log.debug("user_id is None")
             raise UnauthorizedError(validate=True)
-        user = {"user_id": user_id, "roles": roles}
+        #user = {"user_id": user_id, "roles": roles}
+        user = {"user_id": user_id}
     except jwt.ExpiredSignatureError:
-        raise UnauthorizedError(refresh=True)
+        raise UnauthorizedError(refresh_token=True)
     except jwt.InvalidTokenError:
-        raise UnauthorizedError(validate=True)
+        raise UnauthorizedError(access_token=True)
     return user
 
 
@@ -76,19 +80,30 @@ getUserFromTokenDep = Annotated[dict, Depends(get_user_from_token)]
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
 
-async def check_user_roles(
-    request: Request, manager: dbManagerDep, user: getUserFromTokenDep
-):
-    admin = await manager.read(model=AdminUser, ident_val=user.get("user_id"))
-    if request.method in ("DELETE", "PATH", "CREATE"):
-        log.debug("Проверка роли для методов delete, path, create")
-        if not admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="не доступно"
-            )
-    return user
-
-getUserRolesDep = Annotated[dict, Depends(check_user_roles)]
+def make_role_checker(*, param: str = "id_", from_query: bool = False, model, ident: str = "id"):
+    async def check_user_roles(
+        request: Request, manager: dbManagerDep, user: getUserFromTokenDep
+    ):
+        log.debug("проверка роли, param: %s, from_query: %s", param, from_query)
+        check_param = request.query_params.get(param) if from_query else request.path_params.get(param)
+        log.debug("check_param: %s", check_param)
+        #admin = await manager.read(model=AdminUser, ident_val=user.get("user_id"))
+        role = (await manager.read(model=Roles, ident="user_id", ident_val=int(user.get("user_id")), to_join="users_roles"))[0]
+        role = role.get("role_name")
+        log.debug("user role %s", role)
+        if role != "admin":
+            if request.method in ("DELETE", "PATH", "CREATE"):
+                log.debug("Для методов delete, path, create")
+                user_id = user.get("user_id")
+                log.debug("для модели %s, параметр %s", model, ident)
+                owner = (await manager.read(model=model, ident=ident, ident_val=int(check_param)))[0].get(ident)
+                log.debug("owner %s", owner)
+                if owner != user_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN, detail="не доступно"
+                    )
+        return user
+    return check_user_roles
 
 # --- 1. Генерация ключа из мастер-пароля пользователя ---
 def derive_master_key(user_password: str, salt: bytes) -> bytes:
