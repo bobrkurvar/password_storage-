@@ -42,25 +42,6 @@ async def read_user_roles(_id: int, manager: dbManagerDep):
     )
     return result
 
-
-@router.get(
-    "/{_id}",
-    status_code=status.HTTP_200_OK,
-    summary="Получение пользователя по id",
-    response_model=UserOutput,
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "detail": "Пользователь не найден",
-            "model": ErrorResponse,
-        }
-    },
-)
-async def read_user_by_id(_id: int, manager: dbManagerDep):
-    user = (await manager.read(model=Users, ident="id", ident_val=_id))[0]
-    log.debug("Пользователь получен %s, %s", user.get("id"), user.get("username"))
-    return user
-
-
 @router.get(
     "",
     summary="Получение пользователя по username или всего списка",

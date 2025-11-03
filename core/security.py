@@ -63,12 +63,12 @@ def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
         payload = jwt.decode(token, secret_key, algorithms=algorithm)
         log.debug("Decoded payload: %s", payload)
         user_id = payload.get("sub")
-        # roles = payload.get("roles")
+        roles = payload.get("roles")
         if user_id is None:
             log.debug("user_id is None")
             raise UnauthorizedError(validate=True)
-        # user = {"user_id": user_id, "roles": roles}
-        user = {"user_id": user_id}
+        user = {"user_id": user_id, "roles": roles}
+        #user = {"user_id": user_id}
     except jwt.ExpiredSignatureError:
         raise UnauthorizedError(refresh_token=True)
     except jwt.InvalidTokenError:
@@ -82,22 +82,24 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
 def make_role_checker(required_role: list):
     async def check_user_roles(manager: dbManagerDep, user: getUserFromTokenDep):
-        role = (
-            await manager.read(
-                model=Roles,
-                ident="user_id",
-                ident_val=int(user.get("user_id")),
-                to_join="users_roles",
+        roles = user.get("roles")
+        if "admin" in roles or "moderator" in roles:
+            log.debug('управляющая роль проверка роли за базы данных')
+            roles = (
+                await manager.read(
+                    model=Roles,
+                    ident="user_id",
+                    ident_val=int(user.get("user_id")),
+                    to_join="users_roles",
+                )
             )
-        )[0]
-        role = role.get("role_name")
-        log.debug("проверка роли %s на присутствие в %s", role, required_role)
-        log.debug("user role %s", role)
-        if role not in required_role:
+            roles = [role.get("role_name") for role in roles]
+        log.debug("проверка роли %s на присутствие в %s", roles, required_role)
+        log.debug("user role %s", roles)
+        if all(role not in required_role for role in roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="не доступно"
             )
-
         return user
 
     return check_user_roles

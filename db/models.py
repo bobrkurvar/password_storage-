@@ -43,7 +43,7 @@ class Accounts(Base):
     __tablename__ = "accounts"
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("pas_users.id", ondelete="CASCADE")
+        BigInteger, ForeignKey("pas_users.id", ondelete="CASCADE"), index=True
     )
     password: Mapped[str] = mapped_column(nullable=False)
     name: Mapped[str] = mapped_column(nullable=False)
@@ -76,7 +76,7 @@ class Params(Base):
     __tablename__ = "params"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     acc_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("accounts.id", ondelete="CASCADE")
+        BigInteger, ForeignKey("accounts.id", ondelete="CASCADE"), index=True
     )
     account: Mapped["Accounts"] = relationship("Accounts", back_populates="params")
     name: Mapped[str] = mapped_column(nullable=False)

@@ -120,8 +120,9 @@ async def process_select_account_params(
             params_dict_lst.append(param_dict)
             log.debug("params dict list: %s", params_dict_lst)
             params_lst = params_lst[1:]
+            data.update(params_dict_lst=params_dict_lst)
             if params_lst:
-                data.update(params_lst=params_lst, params_dict_lst=params_dict_lst)
+                data.update(params_lst=params_lst)
             else:
                 data.pop("params_lst")
                 data.pop("params_dict_lst")

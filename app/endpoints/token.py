@@ -45,12 +45,13 @@ async def login_user(
         await manager.read(
             model=Roles, ident='user_id', ident_val=ident_val, to_join="users_roles"
         )
-    )[0]
+    )
+    roles = [role.get("role_name") for role in roles]
     log.debug("roles: %s", roles)
     if verify(user.password, cur.get("password")):
         log.debug("client_id: %s", cur.get("id"))
-        access_token = create_access_token({"sub": str(cur.get("id"))})
-        refresh_token = create_refresh_token({"sub": str(cur.get("id"))})
+        access_token = create_access_token({"sub": str(cur.get("id")), "roles": roles, "type": "access"})
+        refresh_token = create_refresh_token({"sub": str(cur.get("id")), "roles": roles, "type": "refresh"})
         return {"access_token": access_token, "refresh_token": refresh_token}
     log.debug("НЕПРАВЛЬНЫЙ ПАРОЛЬ")
     raise HTTPException(
@@ -74,6 +75,7 @@ async def update_tokens(user: getUserFromTokenDep, manager: dbManagerDep):
         ident_val=int(user.get("user_id")),
         to_join="users_roles",
     )
+    roles = [role.get("role_name") for role in roles]
     log.debug("user roles: %s", roles)
     if cur:
         access_token = create_access_token(
