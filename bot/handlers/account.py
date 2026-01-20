@@ -197,7 +197,6 @@ async def press_button_accounts(
         acc = await ext_api_manager.read(
             prefix="account",
             access_token=access_token,
-            #ident="user_id",
             ident_val=callback.from_user.id,
         )
         acc_params_lst = []

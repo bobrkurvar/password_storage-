@@ -11,7 +11,6 @@ log = logging.getLogger(__name__)
 def get_inline_kb(*button_texts, width: int = 1, buttons_data_lst: list = None, **button_data) -> InlineKeyboardMarkup:
     kb_builder = InlineKeyboardBuilder()
     buttons: list[InlineKeyboardButton] = []
-    log.debug("text: %s", button_texts)
     for index, i in enumerate(button_texts):
         if not buttons_data_lst:
             data = dict(button_data)

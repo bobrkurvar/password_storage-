@@ -45,26 +45,6 @@ async def init_all():
 
 
 async def main():
-    # try:
-    #     redis = await init_redis()
-    #     if redis:
-    #         storage = CustomRedisStorage(redis=redis, state_ttl=3600)
-    #     else:
-    #         log.error("не удалось поключиться к redis, использую MemoryStorage")
-    #         storage = MemoryStorage()
-    #     dp = Dispatcher(storage=storage)
-    #     await ext_api_manager.connect()
-    #     dp["ext_api_manager"] = ext_api_manager
-    #     dp.include_router(main_router)
-    #     await dp.start_polling(bot)
-    #     log.debug("НАЧАЛО РАБОТА БОТА")
-    # finally:
-    #     try:
-    #         if ext_api_manager:
-    #             await ext_api_manager.close()
-    #         log.debug("ЗАКРЫТИЕ СОЕДИНЕНИЯ ВНЕШНЕГО API")
-    #     except Exception:
-    #         log.error("ПОДКЛЮЧЕНИЕ НЕ БЫЛО ЗАКРЫТО")
     async with init_all():
         pass
 

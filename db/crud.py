@@ -50,7 +50,7 @@ class Crud:
                 if ident is None:
                     log.debug("Crud получил запрос на удаление id: %s", ident_val)
                     for_remove = await session.get(model, ident_val)
-                    if not (for_remove is None):
+                    if for_remove is not None:
                         await session.delete(for_remove)
                         return for_remove.model_dump()
                     else:
@@ -75,7 +75,7 @@ class Crud:
                     for chunk in for_remove:
                         await session.delete(chunk)
             else:
-                models = await session.execute(select(model))
+                models = await session.execute(select(model)).scalars().all()
                 if models is None:
                     raise NotFoundError(model.__name__)
                 await session.execute(delete(model))

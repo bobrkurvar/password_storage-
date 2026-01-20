@@ -1,6 +1,4 @@
-import base64
 import logging
-import os
 
 from aiogram import F, Router
 from aiogram.filters import StateFilter
@@ -12,8 +10,8 @@ from bot.filters import CallbackFactory
 from bot.filters.states import InputUser
 from bot.lexicon import phrases
 from bot.utils.keyboards import get_inline_kb
-from core.security import get_password_hash
 from shared import MyExternalApiForBot
+from services.bot.users import user_sign_up, user_sign_in
 
 router = Router()
 
@@ -43,7 +41,7 @@ async def press_button_sign_up(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(
     StateFilter(default_state), CallbackFactory.filter(F.act.lower() == "sign in")
 )
-async def press_button_sign_up(callback: CallbackQuery, state: FSMContext):
+async def press_button_sign_in(callback: CallbackQuery, state: FSMContext):
     text = "MENU"
     kb = get_inline_kb(text)
     data = await state.get_data()
@@ -68,70 +66,18 @@ async def process_input_password_for_sign_in(
 ):
     msg = (await state.get_data()).get("msg")
     cur_state = await state.get_state()
+    buttons = ("SIGN IN", "MENU")
+    text = phrases.start
     if cur_state == InputUser.sign_up:
-        salt = base64.b64encode(os.urandom(16)).decode("utf-8")
-        await ext_api_manager.create(
-            prefix="user",
-            id=message.from_user.id,
-            password=get_password_hash(message.text),
-            username=message.from_user.username,
-            salt=salt,
-        )
-        admins = (await state.get_data()).get("admins")
-        role_name = "admin" if message.from_user.id in admins else "user"
-        role = (await ext_api_manager.read(prefix="user/roles", role_name=role_name))[0]
-        role_id = role.get("role_id")
-        log.debug("role_id: %s", role_id)
-        await ext_api_manager.create(
-            prefix=f"user/{message.from_user.id}/roles",
-            role_name="user",
-            role_id=role_id,
-        )
-        buttons = ("SIGN IN", "MENU")
+        await user_sign_up(state, message, ext_api_manager)
+    elif not await user_sign_in(state, message, ext_api_manager):
+        text = "Неправильный пароль"
     else:
-        tokens = await ext_api_manager.login(
-            client_id=message.from_user.id,
-            password=message.text,
-            username=message.from_user.username,
-        )
-        log.debug("tokens %s", tokens)
-        if None in tokens.values():
-            log.debug("НЕПРАВЛЬНЫЙ ПАРОЛЬ")
-            buttons = ("SIGN IN", "MENU")
-            kb = get_inline_kb(*buttons, user_id=message.from_user.id)
-            msg = (
-                await message.bot.edit_message_text(
-                    chat_id=message.chat.id,
-                    message_id=msg,
-                    text="Неправильный пароль",
-                    reply_markup=kb,
-                )
-            ).message_id
-            await state.update_data(msg=msg)
-            await state.set_state(None)
-            return
-        await state.update_data(master_password=message.text)
-        access_token = tokens.get("access_token")
-        access_time = 900
-        await state.storage.set_token(
-            state.key,
-            token_name="access_token",
-            token_value=access_token,
-            ttl=access_time,
-        )
-        refresh_token = tokens.get("refresh_token")
-        refresh_time = 86400 * 7
-        await state.storage.set_token(
-            state.key,
-            token_name="refresh_token",
-            token_value=refresh_token,
-            ttl=refresh_time,
-        )
         buttons = ("ACCOUNTS", "CREATE ACCOUNT")
     kb = get_inline_kb(*buttons, user_id=message.from_user.id)
     msg = (
         await message.bot.edit_message_text(
-            chat_id=message.chat.id, message_id=msg, text=phrases.start, reply_markup=kb
+            chat_id=message.chat.id, message_id=msg, text=text, reply_markup=kb
         )
     ).message_id
     await state.update_data(msg=msg)

@@ -7,6 +7,7 @@ from aiogram.types import CallbackQuery, Message
 from bot.filters.callback_factory import CallbackFactory
 from bot.lexicon import phrases
 from bot.utils.keyboards import get_inline_kb
+from services.bot import delete_msg_if_exists
 
 router = Router()
 
@@ -16,11 +17,7 @@ async def process_command_start(message: Message, state: FSMContext):
     buttons = ("ACCOUNTS", "CREATE ACCOUNT", "DELETE ACCOUNT")
     kb = get_inline_kb(*buttons, user_id=message.from_user.id)
     msg = (await state.get_data()).get("msg")
-    if msg:
-        try:
-            await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
-        except TelegramBadRequest:
-            pass
+    await delete_msg_if_exists(msg, message, TelegramBadRequest)
     msg = (await message.answer(text=phrases.start, reply_markup=kb)).message_id
     await state.update_data(msg=msg)
     await state.set_state(None)
@@ -48,11 +45,7 @@ async def process_command_help(message: Message, state: FSMContext):
     kb = get_inline_kb("start", user_id=message.from_user.id)
     data = await state.get_data()
     msg = data.get("msg")
-    if msg:
-        try:
-            await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
-        except TelegramBadRequest:
-            pass
+    await delete_msg_if_exists(msg, message, TelegramBadRequest)
     msg = (await message.answer(text=phrases.help, reply_markup=kb)).message_id
     await state.update_data(msg=msg)
     await state.set_state(None)

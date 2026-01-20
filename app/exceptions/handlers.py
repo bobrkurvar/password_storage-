@@ -54,7 +54,7 @@ def no_auth_exception_handler(request: Request, exc: UnauthorizedError):
     log.exception("Ошибка аутентификации")
     return JSONResponse(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        content={"code": status.HTTP_401_UNAUTHORIZED, "detail": exc.detail},
+        detail=exc.detail
     )
 
 
