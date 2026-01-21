@@ -15,6 +15,11 @@ class UserOutput(BaseModel):
     id: int
     salt: str
 
+class UserForToken(BaseModel):
+    username: str | None = None
+    user_id: int | None = None
+    password: str
+
 
 class OutputToken(BaseModel):
     access_token: str

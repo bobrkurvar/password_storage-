@@ -33,6 +33,37 @@ class MyExternalApiForBot:
         self._url = url
         self._session = None
 
+    async def sign_in(self, user_id: int | None, username: str | None, password: str):
+        async with self._session.post(
+            self._url + "/user/sign-in", json = {"user_id": user_id, "username": username, "password": password}
+        ) as resp:
+            try:
+                resp.raise_for_status()
+                return await resp.json()
+            except ClientResponseError:
+                return None
+
+    async def sign_up(self, user_id: int | None, username: str | None, password: str):
+        async with self._session.post(
+            self._url + "/user/sign-up", json = {"user_id": user_id, "username": username, "password": password}
+        ) as resp:
+            try:
+                resp.raise_for_status()
+                return await resp.json()
+            except ClientResponseError:
+                return None
+
+    async def read_user(self, user_id: int):
+        headers = {}
+        async with self._session.read(
+            self._url + f"/user/{user_id}",  headers=headers
+        ) as resp:
+            try:
+                resp.raise_for_status()
+                return await resp.json()
+            except ClientResponseError:
+                return None
+
     async def create(self, prefix: str, **data):
         try:
             headers = {"Authorization": f"Bearer {data.pop('access_token')}"}

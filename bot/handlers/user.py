@@ -25,7 +25,10 @@ async def press_button_sign_up(callback: CallbackQuery, state: FSMContext):
     text = "MENU"
     kb = get_inline_kb(text)
     data = await state.get_data()
-    user = data.get("user_info")
+    ext_api_manager = data.get("ext_api_manager")
+    #user = await ext_api_manager.sign_in(user_id = callback.from_user.id, username=callback.from_user.username)
+    user = await ext_api_manager.read_user(user_id=callback.from_user.id)
+    #user = data.get("user_info")
     if not user:
         msg = (
             await callback.message.edit_text(text=phrases.register, reply_markup=kb)
@@ -45,7 +48,10 @@ async def press_button_sign_in(callback: CallbackQuery, state: FSMContext):
     text = "MENU"
     kb = get_inline_kb(text)
     data = await state.get_data()
-    user = data.get("user_salt")
+    #user = data.get("user_salt")
+    ext_api_manager = data.get("ext_api_manager")
+    #user = await ext_api_manager.sign_in(user_id = callback.from_user.id, username=callback.from_user.username)
+    user = await ext_api_manager.read_user(user_id=callback.from_user.id)
     if not user:
         msg = (
             await callback.message.edit_text(
@@ -61,7 +67,7 @@ async def press_button_sign_in(callback: CallbackQuery, state: FSMContext):
 
 
 @router.message(StateFilter(InputUser.sign_in, InputUser.sign_up))
-async def process_input_password_for_sign_in(
+async def process_input_password(
     message: Message, state: FSMContext, ext_api_manager: MyExternalApiForBot
 ):
     msg = (await state.get_data()).get("msg")

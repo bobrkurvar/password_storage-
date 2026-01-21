@@ -7,7 +7,9 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.endpoints.schemas.user import OutputToken
 from core.security import (create_access_token, create_refresh_token,
                            getUserFromTokenDep, verify)
-from db import Crud, get_db_manager
+from repo import Crud, get_db_manager
+from services.app.users import user_sign_up, user_sign_in
+from app.endpoints.schemas.user import UserForToken
 
 router = APIRouter(
     tags=[
@@ -19,8 +21,12 @@ log = logging.getLogger(__name__)
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
 @router.post("/user/sign-up")
-async def user_sign_up():
+async def sign_up(manager: dbManagerDep, user: UserForToken):
+    await user_sign_up(manager, user.user_id, user.username, user.password)
 
+@router.post("/user/sign-in")
+async def sign_in(manager):
+    await user_sign_in
 
 
 # @router.post(
