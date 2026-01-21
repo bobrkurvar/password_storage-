@@ -2,11 +2,11 @@ class User:
     def __init__(self):
         pass
 
-class Roles:
+class Role:
     def __init__(self, name: str):
         self.name = name
 
-class UserRoles:
+class UserRole:
     def __init__(self, user_id: int, role_name: str):
         self.user_id = user_id
         self.role_name = role_name

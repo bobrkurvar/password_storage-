@@ -33,9 +33,9 @@ class MyExternalApiForBot:
         self._url = url
         self._session = None
 
-    async def sign_in(self, user_id: int | None, username: str | None, password: str):
+    async def token(self, user_id: int, username: str | None = None, password: str | None = None):
         async with self._session.post(
-            self._url + "/user/sign-in", json = {"user_id": user_id, "username": username, "password": password}
+            self._url + "/user/tokens", json = {"user_id": user_id, "username": username, "password": password}
         ) as resp:
             try:
                 resp.raise_for_status()
@@ -53,9 +53,11 @@ class MyExternalApiForBot:
             except ClientResponseError:
                 return None
 
-    async def check_tokens(self, user_id: int):
-        async with self._session.post(
-            self._url + "/user/check-tokens", json = {"user_id": user_id}
+
+    async def read_user(self, user_id: int):
+        headers = {}
+        async with self._session.read(
+            self._url + f"/user/{user_id}",  headers=headers
         ) as resp:
             try:
                 resp.raise_for_status()
@@ -63,10 +65,13 @@ class MyExternalApiForBot:
             except ClientResponseError:
                 return None
 
-    async def read_user(self, user_id: int):
-        headers = {}
-        async with self._session.read(
-            self._url + f"/user/{user_id}",  headers=headers
+    async def create_account(self, access_token: str, account_name: str, params: list):
+        try:
+            headers = {"Authorization": f"Bearer {access_token}"}
+        except KeyError:
+            headers = {}
+        async with self._session.post(
+            self._url + "/account", json={"account_name": account_name, "params": params}, headers=headers
         ) as resp:
             try:
                 resp.raise_for_status()

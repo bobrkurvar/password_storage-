@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, status
 from app.endpoints.schemas.account import AccOutput
 from app.exceptions.schemas import ErrorResponse
 from core.security import make_role_checker
-from db import Crud, get_db_manager
-from db.models import Accounts
+from repo import Crud, get_db_manager
+from domain import Account
 
 router = APIRouter(
     tags=["manage"],
@@ -46,7 +46,7 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 )
 async def get_all_accounts(manager: dbManagerDep):
     log.debug(f"админ получает список всех аккаунтов")
-    acc_lst = await manager.read(model=Accounts)
+    acc_lst = await manager.read(model=Account)
     return acc_lst
 
 
@@ -64,7 +64,7 @@ async def get_all_accounts(manager: dbManagerDep):
 )
 async def account_by_id(id_: int, manager: dbManagerDep):
     log.debug("чтение аккаунта по id %s", id_)
-    account = (await manager.read(model=Accounts, ident="id", ident_val=id_))[0]
+    account = (await manager.read(model=Account, ident="id", ident_val=id_))[0]
     return account
 
 
@@ -85,10 +85,10 @@ async def delete_accounts(
 ):
     if ident is None:
         log.debug("ЗАПРОС НА УДАЛЕНИЕ ВСЕХ АККАУНТОВ")
-        await manager.delete(model=Accounts)
+        await manager.delete(model=Account)
     else:
         log.debug("УДАЛЕНИЕ АККАУНТА ПО %s = %s", ident, ident_val)
-        await manager.delete(model=Accounts, ident=ident, ident_val=ident_val)
+        await manager.delete(model=Account, ident=ident, ident_val=ident_val)
 
 
 @router.delete(
@@ -106,5 +106,5 @@ async def delete_accounts(
 )
 async def delete_account_by_id(id_: int, manager: dbManagerDep):
     log.debug("ЗАПРСО НА УДАЛЕНИЕ АККАУНТА С ID: %s", id_)
-    acc = await manager.delete(model=Accounts, ident_val=id_)
+    acc = await manager.delete(model=Account, ident_val=id_)
     return acc

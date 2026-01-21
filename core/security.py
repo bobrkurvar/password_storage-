@@ -75,6 +75,19 @@ def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
         raise UnauthorizedError(access_token=True)
     return user
 
+def check_refresh_token(refresh_token: str, my_id):
+    try:
+        payload = jwt.decode(refresh_token, secret_key, algorithms=algorithm)
+    except jwt.ExpiredSignatureError:
+        raise UnauthorizedError(refresh_token=True)
+    except jwt.InvalidTokenError:
+        raise UnauthorizedError(access_token=True)
+
+    if payload.get("type") != "refresh":
+        raise UnauthorizedError(access_token=True)
+
+    if payload.get("sub") != my_id:
+        raise UnauthorizedError(access_token=True)
 
 getUserFromTokenDep = Annotated[dict, Depends(get_user_from_token)]
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]

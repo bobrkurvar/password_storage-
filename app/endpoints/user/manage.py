@@ -8,7 +8,8 @@ from app.endpoints.schemas.user import (UserOutput, UserRolesInput,
 from app.exceptions.schemas import ErrorResponse
 from core.security import make_role_checker
 from repo import Crud, get_db_manager
-from db.models import Roles, Users, UsersRoles
+from domain import Role, User, UserRole
+from app.endpoints.schemas.user import UserInput
 
 router = APIRouter(
     tags=["manage"],
@@ -22,6 +23,25 @@ router = APIRouter(
 )
 log = logging.getLogger(__name__)
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
+
+
+
+@router.post(
+    "",
+    status_code=status.HTTP_201_CREATED,
+    summary="создание пользователя",
+    response_model=UserOutput,
+    responses={
+        status.HTTP_409_CONFLICT: {
+            "detail": "Пользователь с таким id уже существует",
+            "model": ErrorResponse,
+        },
+    },
+)
+async def user_create(user: UserInput, manager: dbManagerDep):
+    res = await manager.create(User, **user.model_dump())
+    log.debug("user: %s", res)
+    return res
 
 
 @router.get(
@@ -38,7 +58,7 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 )
 async def read_user_roles(_id: int, manager: dbManagerDep):
     result = await manager.read(
-        model=Roles, ident="user_id", ident_val=_id, to_join="users_roles"
+        domain_model=Role, ident="user_id", ident_val=_id, to_join=["users_roles",]
     )
     return result
 
@@ -54,14 +74,14 @@ async def read_user_roles(_id: int, manager: dbManagerDep):
         }
     },
 )
-async def read_user_by_criteria_or_full_list(
+async def read_user_by_username_or_full_list(
     manager: dbManagerDep, username: str | None = None
 ):
     if username is None:
         log.debug("Запрос на чтение списка пользователей")
-        res = await manager.read(Users)
+        res = await manager.read(domain_model=User)
     else:
-        res = await manager.read(Users, ident="username", ident_val=username)
+        res = await manager.read(domain_model=User, ident="username", ident_val=username)
     return res
 
 
@@ -78,7 +98,7 @@ async def read_user_by_criteria_or_full_list(
     },
 )
 async def delete_user(_id: int, manager: dbManagerDep):
-    user = await manager.delete(model=Users, ident_val=_id)
+    user = await manager.delete(domain_model=User, ident_val=_id)
     return user
 
 
@@ -96,7 +116,7 @@ async def delete_user(_id: int, manager: dbManagerDep):
 )
 async def create_user_role(user_id: int, role: UserRolesInput, manager: dbManagerDep):
     result = await manager.create(
-        model=UsersRoles, user_id=user_id, role_id=role.role_id
+        domain_model=UserRole, user_id=user_id, role_id=role.role_id
     )
     log.debug("result: %s", result)
     return {"role_id": role.role_id, "role_name": role.role_name}

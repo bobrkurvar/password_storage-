@@ -11,7 +11,6 @@ from bot.filters.states import InputUser
 from bot.lexicon import phrases
 from bot.utils.keyboards import get_inline_kb
 from shared import MyExternalApiForBot
-from services.bot.users import user_sign_up, user_sign_in
 
 router = Router()
 
@@ -21,14 +20,10 @@ log = logging.getLogger(__name__)
 @router.callback_query(
     StateFilter(default_state), CallbackFactory.filter(F.act.lower() == "sign up")
 )
-async def press_button_sign_up(callback: CallbackQuery, state: FSMContext):
+async def press_button_sign_up(callback: CallbackQuery, state: FSMContext, ext_api_manager: MyExternalApiForBot):
     text = "MENU"
     kb = get_inline_kb(text)
-    data = await state.get_data()
-    ext_api_manager = data.get("ext_api_manager")
-    #user = await ext_api_manager.sign_in(user_id = callback.from_user.id, username=callback.from_user.username)
     user = await ext_api_manager.read_user(user_id=callback.from_user.id)
-    #user = data.get("user_info")
     if not user:
         msg = (
             await callback.message.edit_text(text=phrases.register, reply_markup=kb)
@@ -44,25 +39,26 @@ async def press_button_sign_up(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(
     StateFilter(default_state), CallbackFactory.filter(F.act.lower() == "sign in")
 )
-async def press_button_sign_in(callback: CallbackQuery, state: FSMContext):
-    text = "MENU"
-    kb = get_inline_kb(text)
-    data = await state.get_data()
-    #user = data.get("user_salt")
-    ext_api_manager = data.get("ext_api_manager")
-    #user = await ext_api_manager.sign_in(user_id = callback.from_user.id, username=callback.from_user.username)
-    user = await ext_api_manager.read_user(user_id=callback.from_user.id)
-    if not user:
-        msg = (
-            await callback.message.edit_text(
-                text=phrases.user_not_exists, reply_markup=kb
-            )
-        ).message_id
-    else:
-        msg = (
-            await callback.message.edit_text(text=phrases.login, reply_markup=kb)
-        ).message_id
-        await state.set_state(InputUser.sign_in)
+async def press_button_sign_in(callback: CallbackQuery, state: FSMContext, ext_api_manager: MyExternalApiForBot):
+    buttons = ("MENU", )
+    try:
+        token = await ext_api_manager.token(user_id = callback.from_user.id)
+        if token:
+            text = phrases.start
+            buttons = ("ACCOUNTS", "CREATE ACCOUNT")
+            await state.set_state(None)
+        else:
+            text = phrases.login
+            await state.set_state(InputUser.sign_in)
+    except:
+        text = phrases.user_not_exists
+
+    kb = get_inline_kb(*buttons)
+    msg = (
+        await callback.message.edit_text(
+            text=text, reply_markup=kb
+        )
+    ).message_id
     await state.update_data(msg=msg)
 
 
@@ -75,8 +71,8 @@ async def process_input_password(
     buttons = ("SIGN IN", "MENU")
     text = phrases.start
     if cur_state == InputUser.sign_up:
-        await user_sign_up(state, message, ext_api_manager)
-    elif not await user_sign_in(state, message, ext_api_manager):
+        await ext_api_manager.sign_up(message.from_user.id, message.from_user.username, message.text)
+    elif not await ext_api_manager.token(message.from_user.id, message.from_user.username, message.text):
         text = "Неправильный пароль"
     else:
         buttons = ("ACCOUNTS", "CREATE ACCOUNT")

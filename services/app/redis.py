@@ -9,12 +9,12 @@ class RedisService:
         self,
         key: str,
         value,
-        ttl_seconds: int | None = None,
+        ttl: int | None = None,
     ) -> None:
         await self.redis.set(
             key,
             json.dumps(value),
-            ex=ttl_seconds,
+            ex=ttl,
         )
 
     async def get(self, key: str):

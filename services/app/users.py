@@ -1,9 +1,9 @@
 import logging
 import os
 import base64
-from domain.user import User, UserRoles
+from domain.user import User, UserRole
 from core.security import get_password_hash
-from services.app.tokens import get_tokens
+#from services.app.tokens import get_tokens
 
 log = logging.getLogger(__name__)
 
@@ -17,9 +17,9 @@ async def user_sign_up(manager, user_id: int, password: str, username: str):
         username=username,
         salt=salt
     )
-    is_admin = await manager.read(UserRoles, user_id=user_id, role_name="admin")
+    is_admin = await manager.read(UserRole, user_id=user_id, role_name="admin")
     role_name = "admin" if is_admin else "user"
-    await manager.craete(UserRoles, role_name=role_name)
+    await manager.craete(UserRole, role_name=role_name)
 
 # async def user_sign_up(state, message, ext_api_manager):
 #     # регистрация пользователя
@@ -71,28 +71,28 @@ async def user_sign_up(manager, user_id: int, password: str, username: str):
 #         ttl=refresh_time,
 #     )
 
-async def user_sign_in(manager, redis_service, user_id: int, username: str, password: str):
-    # вход для пользователя
-    tokens = await get_tokens(manager, password, user_id, username)
-    log.debug("tokens %s", tokens)
-    if not tokens:
-        log.debug("НЕПРАВЛЬНЫЙ ПАРОЛЬ")
-        return False
-    #await state.update_data(master_password=message.text)
-    access_token = tokens.get("access_token")
-    access_time = 900
-    # await state.storage.set_token(
-    #     state.key,
-    #     token_name="access_token",
-    #     token_value=access_token,
-    #     ttl=access_time,
-    # )
-    refresh_token = tokens.get("refresh_token")
-    refresh_time = 86400 * 7
-    # await state.storage.set_token(
-    #     state.key,
-    #     token_name="refresh_token",
-    #     token_value=refresh_token,
-    #     ttl=refresh_time,
-    # )
-    return {"access_token": access_token, "refresh_token": refresh_token}
+# async def user_sign_in(manager, redis_service, user_id: int, username: str, password: str):
+#     # вход для пользователя
+#     tokens = await get_tokens(manager, redis_service, password, user_id, username)
+#     access_key = f"{user_id}:access_token"
+#     refresh_key = f"{user_id}:refresh_token"
+#     log.debug("tokens %s", tokens)
+#     if not tokens:
+#         log.debug("НЕПРАВЛЬНЫЙ ПАРОЛЬ")
+#         return False
+#     #await state.update_data(master_password=message.text)
+#     access_token = tokens.get("access_token")
+#     access_time = 900
+#     await redis_service.set(
+#         access_key,
+#         value=access_token,
+#         ttl=access_time,
+#     )
+#     refresh_token = tokens.get("refresh_token")
+#     refresh_time = 86400 * 7
+#     await redis_service.set(
+#         refresh_key,
+#         value=refresh_token,
+#         ttl=refresh_time,
+#     )
+#     return {"access_token": access_token, "refresh_token": refresh_token}

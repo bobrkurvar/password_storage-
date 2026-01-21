@@ -1,13 +1,10 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Body
-from app.endpoints.schemas.user import OutputToken
-from core.security import (create_access_token, create_refresh_token,
-                           getUserFromTokenDep, verify)
+from fastapi import APIRouter, Depends
 from repo import Crud, get_db_manager
-from services.app.users import user_sign_up, user_sign_in
-from services.app.tokens import check_access_and_refresh_token
+from services.app.users import user_sign_up
+from services.app.tokens import get_tokens
 from app.endpoints.schemas.user import UserForToken
 from shared.redis import get_redis_service
 
@@ -25,13 +22,10 @@ redisServiceDep = Annotated[Crud, Depends(get_redis_service)]
 async def sign_up(manager: dbManagerDep, user: UserForToken):
     return await user_sign_up(manager, user.user_id, user.username, user.password)
 
-@router.post("/user/sign-in")
+@router.post("/user/token")
 async def sign_in(manager: dbManagerDep, redis_service: redisServiceDep, user: UserForToken):
-    return await user_sign_in(manager, redis_service, user.user_id, user.username, user.password)
+    return await get_tokens(manager, redis_service, user.password, user.user_id, user.username)
 
-@router.post("/user/token-check")
-async def token_check(manager: dbManagerDep, redis_service: redisServiceDep, user_id: Annotated[int, Body]):
-    return await check_access_and_refresh_token(manager, redis_service, user_id)
 
 # @router.post(
 #     "/login",

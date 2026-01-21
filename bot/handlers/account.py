@@ -14,6 +14,8 @@ from bot.lexicon import phrases
 from bot.utils.keyboards import get_inline_kb
 from core.security import decrypt_account_content, encrypt_account_content
 from shared.external import MyExternalApiForBot
+from services.bot.accounts import make_secret
+from services.bot.messages import delete_msg_if_exists
 
 router = Router()
 log = logging.getLogger(__name__)
@@ -54,115 +56,98 @@ async def process_input_account_password(
     kb = get_inline_kb("MENU")
     data = await state.get_data()
     msg = data.get("msg")
-    name = data.pop("name")
     try:
         await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
     except TelegramBadRequest:
         pass
+    user = await ext_api_manager.read_user(message.from_user.id)
     master_pas = data.get("master_password")
-    salt_string = data.get("user_salt")
+    salt_string = user.get("salt")
     salt_bytes = base64.b64decode(salt_string.encode("utf-8"))
     password_bytes = encrypt_account_content(message.text, master_pas, salt_bytes)
     password_string = base64.b64encode(password_bytes).decode("utf-8")
-    access_token = await state.storage.get_token(state.key, "access_token")
-    acc = await ext_api_manager.create(
-        prefix="account",
-        access_token=access_token,
-        user_id=message.from_user.id,
-        name=name,
-        password=password_string,
-    )
     msg = data.get("msg")
     try:
         await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
     except TelegramBadRequest:
         pass
     msg = (await message.answer(phrases.account_params, reply_markup=kb)).message_id
-    data.update(msg=msg, acc=acc)
-    log.debug("data after input password: %s", data)
+    data.update(msg=msg, password_string=password_string)
     await state.set_data(data)
     await state.set_state(InputAccount.params)
 
 
-@router.message(StateFilter(InputAccount.params, InputAccount.input))
+@router.message(StateFilter(InputAccount.params))
+async def process_params_list(
+    message: Message,
+    state: FSMContext,
+):
+    params = [
+        p.strip()
+        for p in message.text.split()
+        if p.strip() and p not in {"password", "name"}
+    ]
+
+    if not params:
+        await message.answer("Нет параметров")
+        return
+
+    await state.update_data({
+        "params": params,
+        "index": 0,
+        "collected": [],
+    })
+
+    kb = get_inline_kb("MENU", "SECRET")
+    await message.answer(f"Введите {params[0]}", reply_markup=kb)
+    await state.set_state(InputAccount.input)
+
+@router.message(StateFilter(InputAccount.input))
 async def process_select_account_params(
-    message: Message, state: FSMContext, ext_api_manager
+    message: Message, state: FSMContext, ext_api_manager: MyExternalApiForBot
 ):
     data = await state.get_data()
-    cur_state = await state.get_state()
+    account_name = data.pop("name")
     msg = data.get("msg")
-    if cur_state == InputAccount.params:
-        params_lst = message.text.split()
-        params_lst = [i.strip() for i in params_lst if i.strip() != ""]
-        if "password" in params_lst:
-            params_lst.remove("password")
-        if "name" in params_lst:
-            params_lst.remove("name")
-        data.update(params_lst=params_lst)
-    else:
-        params_lst = data.get("params_lst")
-        params_dict_lst = data.get("params_dict_lst", [])
-        if params_lst:
-            content = message.text
-            cur_param = params_lst[0]
-            log.debug("current param: %s", cur_param)
-            param_dict = dict()
-            if data.pop("secret", None):
-                master_password = data.get("master_password")
-                log.debug("Master Password: %s", master_password)
-                salt = data.get("user_salt")
-                salt = base64.b64decode(salt.encode("utf-8"))
-                content = encrypt_account_content(message.text, master_password, salt)
-                content = base64.b64encode(content).decode("utf-8")
-                param_dict.update(secret=True)
-            param_dict.update(name=cur_param, content=content)
-            log.debug("param dict: %s", param_dict)
-            params_dict_lst.append(param_dict)
-            log.debug("params dict list: %s", params_dict_lst)
-            params_lst = params_lst[1:]
-            data.update(params_dict_lst=params_dict_lst)
-            if params_lst:
-                data.update(params_lst=params_lst)
-            else:
-                data.pop("params_lst")
-                data.pop("params_dict_lst")
-                access_token = await state.storage.get_token(state.key, "access_token")
-                acc = data.pop("acc")
-                acc_id = acc.get("id")
-                acc_name = acc.get("name")
-                log.debug("params: %s", params_dict_lst)
-                log.debug("acc_id: %s", acc_id)
-                await ext_api_manager.create(
-                    prefix="account/params",
-                    access_token=access_token,
-                    acc_id=acc_id,
-                    items=params_dict_lst,
-                )
-                acc_params_lst: list | None = data.get("acc_params_lst", None)
-                if acc_params_lst is not None:
-                    for param_dict in params_dict_lst:
-                        acc_params_lst.append(
-                            dict(
-                                acc_id=acc_id,
-                                name=param_dict["name"],
-                                content=param_dict["content"],
-                                secret=param_dict.get("secret", False),
-                            )
-                        )
-                    data.update(acc_params_lst=acc_params_lst)
-    try:
-        await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
-    except TelegramBadRequest:
-        pass
-    if params_lst:
-        cur_par = params_lst[0]
-        kb = get_inline_kb("MENU", "SECRET")
-        text = f"Введите {cur_par}"
-        await state.set_state(InputAccount.input)
-    else:
-        kb = get_inline_kb("MENU")
-        text = phrases.account_created.format(acc_name)
+    params = data["params"]
+    i = data["index"]
+
+    if params:
+        current_param = params[i]
+        content = message.text
+        secret = data.pop("secret", False)
+
+        if secret:
+            master_password = data.get("master_password")
+            log.debug("Master Password: %s", master_password)
+            salt = data.get("user_salt")
+            content = make_secret(message.text, master_password, salt)
+
+        data["collected"].append({
+            "name": current_param,
+            "content": content,
+            "secret": secret,
+        })
+        i += 1
+        data["index"] = i
+        text = f"Введите {current_param}"
+        buttons = ("MENU", "SECRET")
+
+    if i == len(params):
+        data.pop("params")
+        data.pop("index")
+
+        access_token = await ext_api_manager.token(message.from_user.id)
+        await ext_api_manager.create_account(
+            access_token=access_token,
+            account_name = account_name,
+            params = params
+        )
+        text = phrases.account_created.format(account_name)
+        buttons = ("MENU", )
         await state.set_state(None)
+    await delete_msg_if_exists(msg, message)
+    kb = get_inline_kb(**buttons)
     msg = (await message.answer(text=text, reply_markup=kb)).message_id
     data.update(msg=msg)
     await state.set_data(data)

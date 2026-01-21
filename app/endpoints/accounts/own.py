@@ -60,7 +60,7 @@ async def user_accounts_list(user: getUserFromTokenDep, manager: dbManagerDep):
         }
     },
 )
-async def create_account(acc: AccInput, manager: dbManagerDep):
+async def create_account_with_params(acc: AccInput, manager: dbManagerDep):
     acc_from_db = await manager.create(model=Accounts, **acc.model_dump())
     log.debug(
         "returning acc: %s, %s", acc_from_db.get("id"), acc_from_db.get("user_id")
