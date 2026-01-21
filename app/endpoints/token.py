@@ -1,15 +1,15 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
-
+from fastapi import APIRouter, Depends, Body
 from app.endpoints.schemas.user import OutputToken
 from core.security import (create_access_token, create_refresh_token,
                            getUserFromTokenDep, verify)
 from repo import Crud, get_db_manager
 from services.app.users import user_sign_up, user_sign_in
+from services.app.tokens import check_access_and_refresh_token
 from app.endpoints.schemas.user import UserForToken
+from shared.redis import get_redis_service
 
 router = APIRouter(
     tags=[
@@ -19,15 +19,19 @@ router = APIRouter(
 
 log = logging.getLogger(__name__)
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
+redisServiceDep = Annotated[Crud, Depends(get_redis_service)]
 
 @router.post("/user/sign-up")
 async def sign_up(manager: dbManagerDep, user: UserForToken):
-    await user_sign_up(manager, user.user_id, user.username, user.password)
+    return await user_sign_up(manager, user.user_id, user.username, user.password)
 
 @router.post("/user/sign-in")
-async def sign_in(manager):
-    await user_sign_in
+async def sign_in(manager: dbManagerDep, redis_service: redisServiceDep, user: UserForToken):
+    return await user_sign_in(manager, redis_service, user.user_id, user.username, user.password)
 
+@router.post("/user/token-check")
+async def token_check(manager: dbManagerDep, redis_service: redisServiceDep, user_id: Annotated[int, Body]):
+    return await check_access_and_refresh_token(manager, redis_service, user_id)
 
 # @router.post(
 #     "/login",

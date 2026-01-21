@@ -11,7 +11,7 @@ from bot.filters.states import CustomRedisStorage
 from bot.handlers import main_router
 from core import conf
 from shared import ext_api_manager
-from shared.redis import close_redis, init_redis
+from shared.redis import get_redis_client
 
 bot = Bot(conf.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 log = logging.getLogger(__name__)
@@ -19,9 +19,10 @@ log = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def init_all():
-    redis = await init_redis()
-    if redis:
-        storage = CustomRedisStorage(redis=redis, state_ttl=3600)
+    redis_client = get_redis_client()
+    redis_conn = await redis_client.init_redis()
+    if redis_conn:
+        storage = CustomRedisStorage(redis=redis_conn, state_ttl=3600)
     else:
         log.error("не удалось поключиться к redis, использую MemoryStorage")
         storage = MemoryStorage()
@@ -34,8 +35,8 @@ async def init_all():
 
     yield
 
-    if redis:
-        await close_redis(redis)
+    if redis_conn:
+        await redis_client.close_redis()
     try:
         if ext_api_manager:
             await ext_api_manager.close()

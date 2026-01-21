@@ -4,7 +4,6 @@ log = logging.getLogger(__name__)
 
 async def check_access_and_refresh_token(access_token: str | None, refresh_token: str | None, ext_api_manager, state):
     has_refresh_or_access = True
-
     if not access_token:
         log.info("access token не существует")
         access_time = 900

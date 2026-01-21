@@ -53,6 +53,16 @@ class MyExternalApiForBot:
             except ClientResponseError:
                 return None
 
+    async def check_tokens(self, user_id: int):
+        async with self._session.post(
+            self._url + "/user/check-tokens", json = {"user_id": user_id}
+        ) as resp:
+            try:
+                resp.raise_for_status()
+                return await resp.json()
+            except ClientResponseError:
+                return None
+
     async def read_user(self, user_id: int):
         headers = {}
         async with self._session.read(

@@ -6,30 +6,29 @@ from fastapi_limiter.depends import RateLimiter
 
 from app.endpoints import main_router
 from app.exceptions.handlers import *
-from db import get_db_manager
-from db.exceptions import *
-from shared.redis import close_redis, init_redis
+from repo import get_db_manager
+from repo.exceptions import *
+from shared.redis import get_redis_client
+from fastapi_limiter import FastAPILimiter
+import core.logger
 
 dep = []
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    redis = await init_redis()
-    if redis:
-        from fastapi_limiter import FastAPILimiter
-
-        await FastAPILimiter.init(redis)
+    redis_client = get_redis_client()
+    redis_conn = await redis_client.init_redis()
+    if redis_conn:
+        await FastAPILimiter.init(redis_conn)
         dep.append(Depends(RateLimiter(times=5, seconds=10)))
-        app.state.redis = redis
     else:
         log.debug("don't init ratelimiter")
 
     yield
 
     manager = get_db_manager()
-    if redis:
-        await close_redis(redis)
+    await redis_client.close_redis()
     await manager.close_and_dispose()
 
 

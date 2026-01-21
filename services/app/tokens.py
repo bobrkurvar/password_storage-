@@ -30,7 +30,7 @@ async def get_tokens(manager, password: str, user_id: int | None = None, usernam
         return {"access_token": access_token, "refresh_token": refresh_token}
     return {}
 
-async def refresh_tokens(user_id: int, manager):
+async def refresh_tokens(manager, user_id: int):
     cur = await manager.read(
         model=User, ident="id", ident_val=int(user_id)
     )
@@ -51,3 +51,32 @@ async def refresh_tokens(user_id: int, manager):
         )
         return {"access_token": access_token, "refresh_token": refresh_token}
     return {}
+
+async def check_access_and_refresh_token(manager, redis_client, user_id: int):
+    has_refresh_or_access = True
+    access_key, refresh_key = f"{user_id}:access_token", f"{user_id}:refresh_token"
+    access_token = await redis_client.get(access_key)
+    if not access_token:
+        log.info("access token не существует")
+        refresh_token = await redis_client.get(refresh_key)
+        access_time = 900
+        if refresh_token:
+            log.info("refresh token существует")
+            refresh_time = 86400 * 7
+            tokens = await refresh_tokens(manager, user_id)
+            await redis_client.set(
+                access_key,
+                value=tokens.get("access_token"),
+                ttl=access_time,
+            )
+            await redis_client.set(
+                refresh_key,
+                value=tokens.get("refresh_token"),
+                ttl=refresh_time,
+            )
+        else:
+            has_refresh_or_access = False
+    else:
+        log.info("access token существует")
+
+    return has_refresh_or_access

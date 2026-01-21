@@ -71,13 +71,8 @@ async def user_sign_up(manager, user_id: int, password: str, username: str):
 #         ttl=refresh_time,
 #     )
 
-async def user_sign_in(manager, user_id: int, password: str, username: str):
+async def user_sign_in(manager, redis_service, user_id: int, username: str, password: str):
     # вход для пользователя
-    # tokens = await ext_api_manager.login(
-    #     client_id=message.from_user.id,
-    #     password=message.text,
-    #     username=message.from_user.username,
-    # )
     tokens = await get_tokens(manager, password, user_id, username)
     log.debug("tokens %s", tokens)
     if not tokens:

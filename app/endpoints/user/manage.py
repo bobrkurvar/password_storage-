@@ -7,7 +7,7 @@ from app.endpoints.schemas.user import (UserOutput, UserRolesInput,
                                         UserRolesOutput)
 from app.exceptions.schemas import ErrorResponse
 from core.security import make_role_checker
-from db import Crud, get_db_manager
+from repo import Crud, get_db_manager
 from db.models import Roles, Users, UsersRoles
 
 router = APIRouter(
