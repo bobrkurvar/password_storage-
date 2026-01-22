@@ -6,32 +6,45 @@ from typing import Annotated
 
 import jwt
 from cryptography.fernet import Fernet
-from cryptography.hazmat.backends import default_backend
+#from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from fastapi import Depends, Request, status
+from fastapi import Depends, status
 from fastapi.exceptions import HTTPException
 from fastapi.security.oauth2 import OAuth2PasswordBearer
-from passlib.hash import bcrypt
+#from passlib.context import CryptContext
+import bcrypt
 
 from app.exceptions.custom_errors import UnauthorizedError
 from core import conf
-from db import Crud, get_db_manager
-from db.models import Roles
+from repo import Crud, get_db_manager
+from domain.user import Role
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login", auto_error=False)
 secret_key = conf.secret_key
 algorithm = conf.algorithm
 log = logging.getLogger(__name__)
 
+# pwd_context = CryptContext(
+#     schemes=["bcrypt"],
+#     deprecated="auto"
+# )
 
 def get_password_hash(password: str) -> str:
-    hash_password = bcrypt.hash(password)
-    return hash_password
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode(), salt)
+    return hashed.decode()
 
+def verify(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode(), hashed.encode())
 
-def verify(plain_password: str, password_hash: str) -> bool:
-    return bcrypt.verify(plain_password, password_hash)
+# def get_password_hash(password: str) -> str:
+#     hash_password = pwd_context.hash(password)
+#     return hash_password
+#
+#
+# def verify(plain_password: str, password_hash: str) -> bool:
+#     return pwd_context.verify(plain_password, password_hash)
 
 
 def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
@@ -100,7 +113,7 @@ def make_role_checker(required_role: list):
             log.debug('управляющая роль проверка роли за базы данных')
             roles = (
                 await manager.read(
-                    model=Roles,
+                    Role,
                     ident="user_id",
                     ident_val=int(user.get("user_id")),
                     to_join="users_roles",

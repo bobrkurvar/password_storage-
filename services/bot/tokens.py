@@ -15,6 +15,7 @@ async def token_get_flow(ext_api_manager: MyExternalApiForBot, user_id: int, pas
     buttons = ("MENU",)
     status = TokenStatus.SUCCESS
     token = None
+    log.debug("PASSWORD IN BOT: %s", password)
     try:
         token = await ext_api_manager.token(user_id, password)
         if not token:
@@ -22,11 +23,11 @@ async def token_get_flow(ext_api_manager: MyExternalApiForBot, user_id: int, pas
                 text = "Неправильный пароль"
                 buttons = ("MENU", "SIGN IN")
             else:
-                buttons = ("MENU", "SIGN UP")
                 text = phrases.login
                 status = TokenStatus.NEED_PASSWORD
     except:
-        text = phrases.user_not_exists
+        log.debug("USER NOT REGISTER")
+        text = phrases.register
         status = TokenStatus.NEED_REGISTRATION
 
     return token, text, buttons, status

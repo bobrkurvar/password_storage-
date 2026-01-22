@@ -1,8 +1,12 @@
 import json
+from shared.redis import redis_client
 
 
 class RedisService:
     def __init__(self, redis):
+        self.redis = redis
+
+    def init_conn(self, redis):
         self.redis = redis
 
     async def set(
@@ -26,3 +30,8 @@ class RedisService:
 
     async def exists(self, key: str) -> bool:
         return bool(await self.redis.exists(key))
+
+
+redis_service = RedisService(redis_client.redis)
+def get_redis_service():
+    return redis_service

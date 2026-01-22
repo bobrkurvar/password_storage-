@@ -3,7 +3,6 @@ import logging
 from redis.asyncio import ConnectionError, Redis
 
 from core import conf
-from services.app.redis import RedisService
 
 log = logging.getLogger(__name__)
 
@@ -43,7 +42,3 @@ class RedisClient:
 redis_client = RedisClient()
 def get_redis_client():
     return redis_client
-
-redis_service = RedisService(redis_client.redis)
-def get_redis_service():
-    return redis_service

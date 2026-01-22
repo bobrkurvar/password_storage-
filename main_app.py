@@ -10,6 +10,7 @@ from repo import get_db_manager
 from repo.exceptions import *
 from shared.redis import get_redis_client
 from fastapi_limiter import FastAPILimiter
+from services.app.redis import get_redis_service
 import core.logger
 
 dep = []
@@ -19,6 +20,8 @@ dep = []
 async def lifespan(app: FastAPI):
     redis_client = get_redis_client()
     redis_conn = await redis_client.init_redis()
+    redis_service = get_redis_service()
+    redis_service.init_conn(redis_conn)
     if redis_conn:
         await FastAPILimiter.init(redis_conn)
         dep.append(Depends(RateLimiter(times=5, seconds=10)))

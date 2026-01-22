@@ -7,7 +7,7 @@ from aiogram.types import CallbackQuery, Message
 from bot.filters.callback_factory import CallbackFactory
 from bot.lexicon import phrases
 from bot.utils.keyboards import get_inline_kb
-from services.bot import delete_msg_if_exists
+from services.bot.messages import delete_msg_if_exists
 
 router = Router()
 

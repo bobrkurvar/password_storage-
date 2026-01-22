@@ -33,19 +33,16 @@ class MyExternalApiForBot:
         self._url = url
         self._session = None
 
-    async def token(self, user_id: int, username: str | None = None, password: str | None = None):
+    async def token(self, user_id: int, password: str | None = None):
         async with self._session.post(
-            self._url + "/user/tokens", json = {"user_id": user_id, "username": username, "password": password}
+            self._url + "user/token", json = {"user_id": user_id, "password": password}
         ) as resp:
-            try:
-                resp.raise_for_status()
-                return await resp.json()
-            except ClientResponseError:
-                return None
+            resp.raise_for_status()
+            return await resp.json()
 
     async def sign_up(self, user_id: int | None, username: str | None, password: str):
         async with self._session.post(
-            self._url + "/user/sign-up", json = {"user_id": user_id, "username": username, "password": password}
+            self._url + "user/sign-up", json = {"user_id": user_id, "username": username, "password": password}
         ) as resp:
             try:
                 resp.raise_for_status()
@@ -57,7 +54,7 @@ class MyExternalApiForBot:
     async def read_user(self, user_id: int):
         headers = {}
         async with self._session.read(
-            self._url + f"/user/{user_id}",  headers=headers
+            self._url + f"user/{user_id}",  headers=headers
         ) as resp:
             try:
                 resp.raise_for_status()
@@ -71,7 +68,7 @@ class MyExternalApiForBot:
         except KeyError:
             headers = {}
         async with self._session.post(
-            self._url + "/account", json={"account_name": account_name, "params": params}, headers=headers
+            self._url + "account", json={"account_name": account_name, "params": params}, headers=headers
         ) as resp:
             try:
                 resp.raise_for_status()

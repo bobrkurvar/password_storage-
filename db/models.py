@@ -19,7 +19,7 @@ class User(Base):
     #     "UsersActions", back_populates="user"
     # )
     roles: Mapped[list["UserRole"]] = relationship(
-        "UserRole", back_populates="users"
+        "UserRole", back_populates="user"
     )
 
     def __repr__(self):
@@ -45,7 +45,7 @@ class Account(Base):
     name: Mapped[str] = mapped_column(nullable=False)
     user: Mapped["User"] = relationship("User", back_populates="accounts")
     params: Mapped[list["Param"]] = relationship(
-        "Params",
+        "Param",
         back_populates="account",
         cascade="all, delete, delete-orphan",
         passive_deletes=True,
@@ -121,8 +121,8 @@ class Role(Base):
     # role_permissions: Mapped[list["RolesPermissions"]] = relationship(
     #     "RolesPermissions", back_populates="roles"
     # )
-    users_roles: Mapped[list["UserRole"]] = relationship(
-        "UserRole", back_populates="roles"
+    users: Mapped[list["UserRole"]] = relationship(
+        "UserRole", back_populates="role"
     )
 
     def model_dump(self):
@@ -152,10 +152,10 @@ class UserRole(Base):
         return {"user_id": self.user_id, "role_name": self.role_name}
 
 
-# class Admins(Base):
-#     __tablename__ = "admins"
-#     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-#
-#     def model_dump(self):
-#         return {"id": self.id}
+class Admin(Base):
+    __tablename__ = "admins"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+
+    def model_dump(self):
+        return {"id": self.id}
 

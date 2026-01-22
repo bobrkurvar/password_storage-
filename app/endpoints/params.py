@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, status
 from app.endpoints.schemas.account import ParamInput, ParamOutput
 from app.exceptions.schemas import ErrorResponse
 from core.security import get_user_from_token
-from db import Crud, get_db_manager
-from db.models import Params
+from repo import Crud, get_db_manager
+from domain.account import Param
 
 router = APIRouter(
     tags=["Params of account"],
@@ -50,7 +50,7 @@ async def get_param_by_criteria(
     to_join: str | None = None,
 ):
     params = await manager.read(
-        model=Params, ident=ident, ident_val=int(ident_val), to_join=to_join
+        Param, ident=ident, ident_val=int(ident_val), to_join=to_join
     )
     return params
 

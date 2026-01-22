@@ -12,5 +12,6 @@ def get_db_manager() -> Crud:
         domain.Role: models.Role,
         domain.Account: models.Account,
         domain.Param: models.Param,
+        domain.Admin: models.Admin,
     }
     return Crud(db_url, domain_with_orm)

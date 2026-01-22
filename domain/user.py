@@ -11,6 +11,6 @@ class UserRole:
         self.user_id = user_id
         self.role_name = role_name
 
-# class Admins:
-#     def __init__(self, user_id: int):
-#         self.id = user_id
+class Admin:
+    def __init__(self, user_id: int):
+        self.id = user_id

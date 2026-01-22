@@ -17,4 +17,4 @@ class Phrases(BaseModel):
     params_list: str = ACCOUNT["params list"]
 
 
-phrases = Phrases()
+phrases: Phrases = Phrases()

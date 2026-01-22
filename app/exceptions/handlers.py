@@ -4,7 +4,7 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
 from app.exceptions.custom_errors import UnauthorizedError
-from db.exceptions import (
+from repo.exceptions import (
     AlreadyExistsError,
     CustomForeignKeyViolationError,
     DatabaseError,

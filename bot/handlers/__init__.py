@@ -4,7 +4,6 @@ from aiogram.utils.callback_answer import CallbackAnswerMiddleware
 from bot.utils.middleware import DeleteUsersMessageMiddleware
 from services.bot.tokens import TokenStatus
 from bot.filters.states import InputUser
-
 from . import account, command_core, user
 
 main_router = Router()
@@ -18,11 +17,6 @@ main_router.message.outer_middleware(DeleteUsersMessageMiddleware())
 #main_router.message.middleware(FetchAdmins())
 #main_router.callback_query.middleware(FetchAdmins())
 
-token_status_to_state = {
-    TokenStatus.SUCCESS: None,
-    TokenStatus.NEED_PASSWORD: InputUser.sign_in,
-    TokenStatus.NEED_REGISTRATION: InputUser.sign_up
-}
 
 
 

@@ -1,2 +1,2 @@
-from user import *
-from account import *
+from .user import *
+from .account import *

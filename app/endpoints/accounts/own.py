@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, status
 from app.endpoints.schemas.account import AccInput, AccOutput
 from app.exceptions.schemas import ErrorResponse
 from core.security import get_user_from_token, getUserFromTokenDep
-from db import Crud, get_db_manager
-from db.models import Accounts
+from repo import Crud, get_db_manager
+from domain.account import Account
 
 router = APIRouter(
     tags=["own"],
@@ -43,7 +43,7 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 async def user_accounts_list(user: getUserFromTokenDep, manager: dbManagerDep):
     log.debug(f"получение списка аккаунтов для пользователя с {user.get("user_id")}")
     acc_lst = await manager.read(
-        model=Accounts, ident="user_id", ident_val=int(user.get("user_id"))
+        Account, ident="user_id", ident_val=int(user.get("user_id"))
     )
     return acc_lst
 
@@ -61,7 +61,7 @@ async def user_accounts_list(user: getUserFromTokenDep, manager: dbManagerDep):
     },
 )
 async def create_account_with_params(acc: AccInput, manager: dbManagerDep):
-    acc_from_db = await manager.create(model=Accounts, **acc.model_dump())
+    acc_from_db = await manager.create(Account, **acc.model_dump())
     log.debug(
         "returning acc: %s, %s", acc_from_db.get("id"), acc_from_db.get("user_id")
     )

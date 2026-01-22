@@ -12,7 +12,12 @@ from bot.lexicon import phrases
 from services.bot.tokens import token_get_flow, TokenStatus
 from bot.utils.keyboards import get_inline_kb
 from shared import MyExternalApiForBot
-from . import token_status_to_state
+
+token_status_to_state = {
+    TokenStatus.SUCCESS: None,
+    TokenStatus.NEED_PASSWORD: InputUser.sign_in,
+    TokenStatus.NEED_REGISTRATION: InputUser.sign_up
+}
 
 router = Router()
 
@@ -62,19 +67,19 @@ async def process_input_password(
 ):
     msg = (await state.get_data()).get("msg")
     cur_state = await state.get_state()
+    status = ""
     buttons = ("SIGN IN", "MENU")
     text = phrases.start
-    status = TokenStatus.SUCCESS
     if cur_state == InputUser.sign_up:
         await ext_api_manager.sign_up(message.from_user.id, message.from_user.username, message.text)
     else:
-        text, buttons, status = await token_get_flow(ext_api_manager, message.from_user.id, message.text)
+        token, text, buttons, status = await token_get_flow(ext_api_manager, message.from_user.id, message.text)
     kb = get_inline_kb(*buttons, user_id=message.from_user.id)
     msg = (
         await message.bot.edit_message_text(
             chat_id=message.chat.id, message_id=msg, text=text, reply_markup=kb
         )
     ).message_id
-    new_state = token_status_to_state[status]
+    new_state = token_status_to_state.get(status, None)
     await state.update_data(msg=msg)
     await state.set_state(new_state)
