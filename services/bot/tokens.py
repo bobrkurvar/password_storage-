@@ -1,31 +1,34 @@
 import logging
+from bot.lexicon import phrases
+from shared import MyExternalApiForBot
+from enum import Enum
+
+class TokenStatus(Enum):
+    SUCCESS = "success"
+    NEED_PASSWORD = "need_password"
+    NEED_REGISTRATION = "need_registration"
 
 log = logging.getLogger(__name__)
 
-async def check_access_and_refresh_token(access_token: str | None, refresh_token: str | None, ext_api_manager, state):
-    has_refresh_or_access = True
-    if not access_token:
-        log.info("access token не существует")
-        access_time = 900
-        if refresh_token:
-            log.info("refresh token существует")
-            refresh_time = 86400 * 7
-            tokens = await ext_api_manager.refresh(refresh_token)
-            await state.storage.set_token(
-                state.key,
-                token_name="access_token",
-                token_value=tokens.get("access_token"),
-                ttl=access_time,
-            )
-            await state.storage.set_token(
-                state.key,
-                token_name="refresh_token",
-                token_value=tokens.get("refresh_token"),
-                ttl=refresh_time,
-            )
-        else:
-            has_refresh_or_access = False
-    else:
-        log.info("access token существует")
+async def token_get_flow(ext_api_manager: MyExternalApiForBot, user_id: int, password: str | None = None):
+    text = phrases.start
+    buttons = ("MENU",)
+    status = TokenStatus.SUCCESS
+    token = None
+    try:
+        token = await ext_api_manager.token(user_id, password)
+        if not token:
+            if password is not None:
+                text = "Неправильный пароль"
+                buttons = ("MENU", "SIGN IN")
+            else:
+                buttons = ("MENU", "SIGN UP")
+                text = phrases.login
+                status = TokenStatus.NEED_PASSWORD
+    except:
+        text = phrases.user_not_exists
+        status = TokenStatus.NEED_REGISTRATION
 
-    return has_refresh_or_access
+    return token, text, buttons, status
+
+

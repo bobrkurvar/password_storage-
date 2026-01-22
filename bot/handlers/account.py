@@ -15,7 +15,9 @@ from bot.utils.keyboards import get_inline_kb
 from core.security import decrypt_account_content, encrypt_account_content
 from shared.external import MyExternalApiForBot
 from services.bot.accounts import make_secret
+from services.bot.tokens import token_get_flow, TokenStatus
 from services.bot.messages import delete_msg_if_exists
+from . import token_status_to_state
 
 router = Router()
 log = logging.getLogger(__name__)
@@ -111,6 +113,8 @@ async def process_select_account_params(
     msg = data.get("msg")
     params = data["params"]
     i = data["index"]
+    buttons = ("MENU",)
+    status = TokenStatus.SUCCESS
 
     if params:
         current_param = params[i]
@@ -136,21 +140,21 @@ async def process_select_account_params(
     if i == len(params):
         data.pop("params")
         data.pop("index")
-
-        access_token = await ext_api_manager.token(message.from_user.id)
-        await ext_api_manager.create_account(
-            access_token=access_token,
-            account_name = account_name,
-            params = params
-        )
-        text = phrases.account_created.format(account_name)
-        buttons = ("MENU", )
-        await state.set_state(None)
+        token, text, buttons, status = await token_get_flow(ext_api_manager, message.from_user.id)
+        if token:
+            await ext_api_manager.create_account(
+                access_token=token,
+                account_name = account_name,
+                params = params
+            )
+            text = phrases.account_created.format(account_name)
     await delete_msg_if_exists(msg, message)
     kb = get_inline_kb(**buttons)
     msg = (await message.answer(text=text, reply_markup=kb)).message_id
     data.update(msg=msg)
+    new_state = token_status_to_state[status]
     await state.set_data(data)
+    await state.set_state(new_state)
 
 
 @router.callback_query(

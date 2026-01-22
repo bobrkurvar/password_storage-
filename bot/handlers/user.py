@@ -9,8 +9,10 @@ from aiogram.types import CallbackQuery, Message
 from bot.filters import CallbackFactory
 from bot.filters.states import InputUser
 from bot.lexicon import phrases
+from services.bot.tokens import token_get_flow, TokenStatus
 from bot.utils.keyboards import get_inline_kb
 from shared import MyExternalApiForBot
+from . import token_status_to_state
 
 router = Router()
 
@@ -40,25 +42,17 @@ async def press_button_sign_up(callback: CallbackQuery, state: FSMContext, ext_a
     StateFilter(default_state), CallbackFactory.filter(F.act.lower() == "sign in")
 )
 async def press_button_sign_in(callback: CallbackQuery, state: FSMContext, ext_api_manager: MyExternalApiForBot):
-    buttons = ("MENU", )
-    try:
-        token = await ext_api_manager.token(user_id = callback.from_user.id)
-        if token:
-            text = phrases.start
-            buttons = ("ACCOUNTS", "CREATE ACCOUNT")
-            await state.set_state(None)
-        else:
-            text = phrases.login
-            await state.set_state(InputUser.sign_in)
-    except:
-        text = phrases.user_not_exists
-
+    token, text, buttons, status = await token_get_flow(ext_api_manager, callback.from_user.id)
+    if token:
+        buttons += ("ACCOUNTS", "CREATE ACCOUNT")
     kb = get_inline_kb(*buttons)
     msg = (
         await callback.message.edit_text(
             text=text, reply_markup=kb
         )
     ).message_id
+    new_state = token_status_to_state[status]
+    await state.set_state(new_state)
     await state.update_data(msg=msg)
 
 
@@ -70,17 +64,17 @@ async def process_input_password(
     cur_state = await state.get_state()
     buttons = ("SIGN IN", "MENU")
     text = phrases.start
+    status = TokenStatus.SUCCESS
     if cur_state == InputUser.sign_up:
         await ext_api_manager.sign_up(message.from_user.id, message.from_user.username, message.text)
-    elif not await ext_api_manager.token(message.from_user.id, message.from_user.username, message.text):
-        text = "Неправильный пароль"
     else:
-        buttons = ("ACCOUNTS", "CREATE ACCOUNT")
+        text, buttons, status = await token_get_flow(ext_api_manager, message.from_user.id, message.text)
     kb = get_inline_kb(*buttons, user_id=message.from_user.id)
     msg = (
         await message.bot.edit_message_text(
             chat_id=message.chat.id, message_id=msg, text=text, reply_markup=kb
         )
     ).message_id
+    new_state = token_status_to_state[status]
     await state.update_data(msg=msg)
-    await state.set_state(None)
+    await state.set_state(new_state)

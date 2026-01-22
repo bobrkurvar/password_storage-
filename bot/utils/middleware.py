@@ -10,23 +10,23 @@ from bot.utils.keyboards import get_inline_kb
 
 log = logging.getLogger(__name__)
 
-
-class AuthMiddleware(BaseMiddleware):
-    async def __call__(
-        self,
-        handler: Callable[[CallbackQuery, dict[str, Any]], Awaitable[Any]],
-        event: CallbackQuery,
-        data: dict[str, Any],
-    ):
-        ext_api_manager = data.get("ext_api_manager")
-        has_refresh_or_access = await ext_api_manager.check_tokens(event.from_user.id)
-        if not has_refresh_or_access:
-            log.info("refresh token не существует")
-            buttons = ("SIGN IN", "SIGN UP")
-            kb = get_inline_kb(*buttons)
-            await event.message.edit_text(text=phrases.start, reply_markup=kb)
-        else:
-            return await handler(event, data)
+#
+# class AuthMiddleware(BaseMiddleware):
+#     async def __call__(
+#         self,
+#         handler: Callable[[CallbackQuery, dict[str, Any]], Awaitable[Any]],
+#         event: CallbackQuery,
+#         data: dict[str, Any],
+#     ):
+#         ext_api_manager = data.get("ext_api_manager")
+#         has_refresh_or_access = await ext_api_manager.check_tokens(event.from_user.id)
+#         if not has_refresh_or_access:
+#             log.info("refresh token не существует")
+#             buttons = ("SIGN IN", "SIGN UP")
+#             kb = get_inline_kb(*buttons)
+#             await event.message.edit_text(text=phrases.start, reply_markup=kb)
+#         else:
+#             return await handler(event, data)
 
 
 class DeleteUsersMessageMiddleware(BaseMiddleware):

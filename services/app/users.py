@@ -3,7 +3,6 @@ import os
 import base64
 from domain.user import User, UserRole
 from core.security import get_password_hash
-#from services.app.tokens import get_tokens
 
 log = logging.getLogger(__name__)
 
