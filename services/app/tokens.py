@@ -27,7 +27,7 @@ async def get_tokens(manager, redis_client, password: str | None = None, user_id
         cur = (
             await manager.read(User, id=int(user_id))
         )
-        log.debug("CUR: %s", cur)
+        #log.debug("CUR: %s", cur)
     if len(cur) == 0:
         log.debug("USER NOT FOUND")
         raise Exception
@@ -55,6 +55,6 @@ async def get_tokens(manager, redis_client, password: str | None = None, user_id
                 check_refresh_token(refresh_token, ident_val)
                 log.info("refresh token существует")
                 access_token = await create_dict_tokens_and_save(user_id, redis_client, roles, access_time, refresh_time, access_key, refresh_key)
-
+    log.debug("access_token: %s", access_token)
     return access_token
 

@@ -3,6 +3,7 @@ import logging
 from redis.asyncio import ConnectionError, Redis
 
 from core import conf
+import json
 
 log = logging.getLogger(__name__)
 
@@ -42,3 +43,42 @@ class RedisClient:
 redis_client = RedisClient()
 def get_redis_client():
     return redis_client
+
+class RedisService:
+    def __init__(self, redis, prefix: str = ""):
+        self.prefix = prefix
+        self.redis = redis
+
+    def init_conn(self, redis):
+        self.redis = redis
+
+    async def set(
+        self,
+        key: str,
+        value,
+        ttl: int | None = None,
+    ) -> None:
+        key = f"{self.prefix}:{key}"
+        await self.redis.set(
+            key,
+            json.dumps(value),
+            ex=ttl,
+        )
+
+    async def get(self, key: str):
+        key = f"{self.prefix}:{key}"
+        value = await self.redis.get(key)
+        return json.loads(value) if value else None
+
+    async def delete(self, key: str) -> None:
+        key = f"{self.prefix}:{key}"
+        await self.redis.delete(key)
+
+    async def exists(self, key: str) -> bool:
+        key = f"{self.prefix}:{key}"
+        return bool(await self.redis.exists(key))
+
+
+def get_redis_service(prefix: str = ""):
+    redis_service = RedisService(redis_client.redis)
+    return redis_service

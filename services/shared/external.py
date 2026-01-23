@@ -51,9 +51,12 @@ class MyExternalApiForBot:
                 return None
 
 
-    async def read_user(self, user_id: int):
-        headers = {}
-        async with self._session.read(
+    async def read_user(self, user_id: int | None = None, access_token: str | None = None):
+        try:
+            headers = {"Authorization": f"Bearer {access_token}"}
+        except KeyError:
+            headers = {}
+        async with self._session.get(
             self._url + f"user/{user_id}",  headers=headers
         ) as resp:
             try:
@@ -61,6 +64,28 @@ class MyExternalApiForBot:
                 return await resp.json()
             except ClientResponseError:
                 return None
+
+    async def read_account(self, user_id: int, access_token: str):
+        try:
+            headers = {"Authorization": f"Bearer {access_token}"}
+        except KeyError:
+            headers = {}
+        async with self._session.read(
+            self._url + f"user/{user_id}/accounts",  headers=headers
+        ) as resp:
+            resp.raise_for_status()
+            return await resp.json()
+
+    async def read_params(self, account_id: int, access_token: str):
+        try:
+            headers = {"Authorization": f"Bearer {access_token}"}
+        except KeyError:
+            headers = {}
+        async with self._session.read(
+            self._url + f"account/{account_id}/params",  headers=headers
+        ) as resp:
+            resp.raise_for_status()
+            return await resp.json()
 
     async def create_account(self, access_token: str, account_name: str, params: list):
         try:
@@ -70,11 +95,8 @@ class MyExternalApiForBot:
         async with self._session.post(
             self._url + "account", json={"account_name": account_name, "params": params}, headers=headers
         ) as resp:
-            try:
-                resp.raise_for_status()
-                return await resp.json()
-            except ClientResponseError:
-                return None
+            resp.raise_for_status()
+            return await resp.json()
 
     async def create(self, prefix: str, **data):
         try:

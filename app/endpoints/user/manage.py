@@ -25,6 +25,25 @@ log = logging.getLogger(__name__)
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
 
+@router.get(
+    "/{user_id:int}",
+    status_code=status.HTTP_200_OK,
+    summary="Получение пользователя по",
+    response_model=UserOutput,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "detail": "Пользователь не найден",
+            "model": ErrorResponse,
+        }
+    },
+)
+async def read_user_by_id(user_id: int, manager: dbManagerDep):
+    user = (await manager.read(User, id=user_id))
+    if user:
+        user = user[0]
+    log.debug("Пользователь получен %s, %s", user.get("id"), user.get("username"))
+    return user
+
 
 @router.post(
     "",

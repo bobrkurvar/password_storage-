@@ -2,8 +2,6 @@ from aiogram import Router
 from aiogram.utils.callback_answer import CallbackAnswerMiddleware
 
 from bot.utils.middleware import DeleteUsersMessageMiddleware
-from services.bot.tokens import TokenStatus
-from bot.filters.states import InputUser
 from . import account, command_core, user
 
 main_router = Router()
