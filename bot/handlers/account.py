@@ -122,12 +122,12 @@ async def process_select_account_params(
         buttons = ("MENU", "SECRET")
 
         if secret:
-            #await set_previous_data(redis_service, user_id=message.from_user.id, state=cur_state, text=text, buttons=buttons)
             status, token, derive_key, text, buttons = await match_status_and_interface(ext_api_manager, redis_service, message.from_user.id, ok_text=text, ok_buttons=buttons, need_crypto=True)
             if status == AuthStage.OK:
                 content = encrypt_account_content(content, derive_key)
             else:
                 proceed = False
+                #await set_previous_data(redis_service, user_id=message.from_user.id, state=cur_state, text=text, buttons=buttons)
 
         if proceed:
             data["collected"].append({
