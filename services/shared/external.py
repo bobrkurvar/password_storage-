@@ -56,8 +56,9 @@ class MyExternalApiForBot:
             headers = {"Authorization": f"Bearer {access_token}"}
         except KeyError:
             headers = {}
+        path = self._url + f"user/{user_id}" if user_id is not None else self._url + "user"
         async with self._session.get(
-            self._url + f"user/{user_id}",  headers=headers
+            path, headers=headers
         ) as resp:
             try:
                 resp.raise_for_status()
@@ -87,16 +88,19 @@ class MyExternalApiForBot:
             resp.raise_for_status()
             return await resp.json()
 
-    async def create_account(self, access_token: str, account_name: str, params: list):
+    async def create_account(self, access_token: str, account_name: str, password: str, params: list):
         try:
             headers = {"Authorization": f"Bearer {access_token}"}
         except KeyError:
             headers = {}
         async with self._session.post(
-            self._url + "account", json={"account_name": account_name, "params": params}, headers=headers
+            self._url + "account", json={"name": account_name, "params": params, "password": password}, headers=headers
         ) as resp:
-            resp.raise_for_status()
-            return await resp.json()
+            try:
+                resp.raise_for_status()
+                return await resp.json()
+            except ClientResponseError:
+                return None
 
     async def create(self, prefix: str, **data):
         try:

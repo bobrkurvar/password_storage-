@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from app.endpoints.schemas.account import AccOutput
+from app.endpoints.schemas.account import AccountOutput
 from app.exceptions.schemas import ErrorResponse
 from core.security import make_role_checker
 from repo import Crud, get_db_manager
@@ -32,7 +32,7 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
     "/all",
     status_code=status.HTTP_200_OK,
     summary="Получение списка всех аккаунтов (только для администратора)",
-    response_model=list[AccOutput],
+    response_model=list[AccountOutput],
     responses={
         status.HTTP_403_FORBIDDEN: {
             "description": "Недостаточно прав для выполнения запроса",
@@ -46,7 +46,7 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 )
 async def get_all_accounts(manager: dbManagerDep):
     log.debug(f"админ получает список всех аккаунтов")
-    acc_lst = await manager.read(model=Account)
+    acc_lst = await manager.read(Account)
     return acc_lst
 
 
@@ -54,7 +54,7 @@ async def get_all_accounts(manager: dbManagerDep):
     "/{id_}",
     status_code=status.HTTP_200_OK,
     summary="получение аккаунта по id",
-    response_model=AccOutput,
+    response_model=AccountOutput,
     responses={
         status.HTTP_404_NOT_FOUND: {
             "detail": "Аккаунт не найден",
@@ -62,9 +62,9 @@ async def get_all_accounts(manager: dbManagerDep):
         }
     },
 )
-async def account_by_id(id_: int, manager: dbManagerDep):
-    log.debug("чтение аккаунта по id %s", id_)
-    account = (await manager.read(model=Account, ident="id", ident_val=id_))[0]
+async def account_by_id(account_id: int, manager: dbManagerDep):
+    log.debug("чтение аккаунта по id %s", account_id)
+    account = (await manager.read(Account, id=account_id))[0]
     return account
 
 
@@ -85,17 +85,18 @@ async def delete_accounts(
 ):
     if ident is None:
         log.debug("ЗАПРОС НА УДАЛЕНИЕ ВСЕХ АККАУНТОВ")
-        await manager.delete(model=Account)
+        await manager.delete(Account)
     else:
         log.debug("УДАЛЕНИЕ АККАУНТА ПО %s = %s", ident, ident_val)
-        await manager.delete(model=Account, ident=ident, ident_val=ident_val)
+        filters = {ident: ident_val}
+        await manager.delete(Account, **filters)
 
 
 @router.delete(
     "/{id_}",
     status_code=status.HTTP_200_OK,
     summary="Удаление одного аккаунта",
-    response_model=AccOutput,
+    response_model=AccountOutput,
     responses={
         status.HTTP_404_NOT_FOUND: {
             "detail": "Аккаунт не найден",
@@ -104,7 +105,7 @@ async def delete_accounts(
     },
     dependencies=[Depends(make_role_checker(required_role=["admin"]))],
 )
-async def delete_account_by_id(id_: int, manager: dbManagerDep):
-    log.debug("ЗАПРСО НА УДАЛЕНИЕ АККАУНТА С ID: %s", id_)
-    acc = await manager.delete(model=Account, ident_val=id_)
+async def delete_account_by_id(account_id: int, manager: dbManagerDep):
+    log.debug("ЗАПРСО НА УДАЛЕНИЕ АККАУНТА С ID: %s", account_id)
+    acc = await manager.delete(Account, id=account_id)
     return acc

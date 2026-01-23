@@ -80,7 +80,7 @@ def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
         if user_id is None:
             log.debug("user_id is None")
             raise UnauthorizedError(validate=True)
-        user = {"user_id": user_id, "roles": roles}
+        user = {"user_id": int(user_id), "roles": roles}
         #user = {"user_id": user_id}
     except jwt.ExpiredSignatureError:
         raise UnauthorizedError(refresh_token=True)
@@ -88,7 +88,7 @@ def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
         raise UnauthorizedError(access_token=True)
     return user
 
-def check_refresh_token(refresh_token: str, my_id):
+def check_refresh_token(refresh_token: str, my_id: int):
     try:
         payload = jwt.decode(refresh_token, secret_key, algorithms=algorithm)
     except jwt.ExpiredSignatureError:
@@ -99,7 +99,7 @@ def check_refresh_token(refresh_token: str, my_id):
     if payload.get("type") != "refresh":
         raise UnauthorizedError(access_token=True)
 
-    if payload.get("sub") != my_id:
+    if payload.get("sub") != str(my_id):
         raise UnauthorizedError(access_token=True)
 
 getUserFromTokenDep = Annotated[dict, Depends(get_user_from_token)]
@@ -132,11 +132,12 @@ def make_role_checker(required_role: list):
 
 
 # --- 1. Генерация ключа из мастер-пароля пользователя ---
-def derive_master_key(user_password: str, salt: bytes) -> bytes:
+def derive_master_key(user_password: str, salt: str) -> bytes:
     """
     Из пользовательского пароля (введённого при логине)
     создаётся мастер-ключ, используемый для шифрования данных.
     """
+    salt = base64.b64decode(salt.encode("utf-8"))
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
@@ -146,27 +147,11 @@ def derive_master_key(user_password: str, salt: bytes) -> bytes:
     return base64.urlsafe_b64encode(kdf.derive(user_password.encode()))
 
 
-# --- 2. Шифрование паролей аккаунтов с помощью мастер-ключа ---
-def encrypt_account_content(
-    account_password: str, master_password: str, salt: bytes | None = None
-) -> bytes:
-    """
-    Шифрует пароль аккаунта, используя мастер-пароль пользователя.
-    Возвращает salt + зашифрованные данные.
-    """
-    salt = os.urandom(16) if salt is None else salt
-    master_key = derive_master_key(master_password, salt)
-    f = Fernet(master_key)
-    encrypted = f.encrypt(account_password.encode())
-    return salt + encrypted
+def encrypt_account_content(plain_text: str, derive_key: bytes) -> bytes:
+    f = Fernet(derive_key)
+    return f.encrypt(plain_text.encode())
 
 
-# --- 3. Расшифровка ---
-def decrypt_account_content(token: bytes, master_password: str) -> str:
-    """
-    Расшифровывает пароль аккаунта с помощью введённого мастер-пароля.
-    """
-    salt, encrypted = token[:16], token[16:]
-    master_key = derive_master_key(master_password, salt)
-    f = Fernet(master_key)
-    return f.decrypt(encrypted).decode()
+def decrypt_account_content(token: bytes, derive_key: bytes) -> str:
+    f = Fernet(derive_key)
+    return f.decrypt(token).decode()

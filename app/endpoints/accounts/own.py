@@ -3,11 +3,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from app.endpoints.schemas.account import AccInput, AccOutput
+from app.endpoints.schemas.account import AccountInput, AccountOutput
 from app.exceptions.schemas import ErrorResponse
 from core.security import get_user_from_token, getUserFromTokenDep
 from repo import Crud, get_db_manager
 from domain.account import Account
+from services.app.account import create_account
 
 router = APIRouter(
     tags=["own"],
@@ -32,7 +33,7 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
     "",
     status_code=status.HTTP_200_OK,
     summary="Получение списка аккаунтов по id владельца полученного из токена",
-    response_model=list[AccOutput],
+    response_model=list[AccountOutput],
     responses={
         status.HTTP_404_NOT_FOUND: {
             "detail": "Список задач пуст",
@@ -52,7 +53,7 @@ async def user_accounts_list(user: getUserFromTokenDep, manager: dbManagerDep):
     "",
     status_code=status.HTTP_201_CREATED,
     summary="Создание аккаунта",
-    response_model=AccOutput,
+    response_model=AccountOutput,
     responses={
         status.HTTP_409_CONFLICT: {
             "detail": "Аккаунт с данным id уже существует",
@@ -60,9 +61,9 @@ async def user_accounts_list(user: getUserFromTokenDep, manager: dbManagerDep):
         }
     },
 )
-async def create_account_with_params(acc: AccInput, manager: dbManagerDep):
-    acc_from_db = await manager.create(Account, **acc.model_dump())
+async def create_account_with_params(user: getUserFromTokenDep, account: AccountInput, manager: dbManagerDep):
+    created_account, params = await create_account(manager, **account.model_dump(), user_id=user["user_id"])
     log.debug(
-        "returning acc: %s, %s", acc_from_db.get("id"), acc_from_db.get("user_id")
+        "returning acc: %s, %s", created_account.get("id"), created_account.get("user_id")
     )
-    return acc_from_db
+    return created_account

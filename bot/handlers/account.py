@@ -15,9 +15,8 @@ from bot.utils.keyboards import get_inline_kb
 from core.security import decrypt_account_content, encrypt_account_content
 from services.shared.external import MyExternalApiForBot
 from services.shared.redis import RedisService
-from services.bot.accounts import make_secret
 from services.bot.tokens import AuthStage, match_status_and_interface
-from services.bot.messages import delete_msg_if_exists
+from services.bot.messages import delete_msg_if_exists, set_previous_data
 from bot.utils.flow import get_state_from_status
 from bot.filters.states import InputUser
 
@@ -60,22 +59,17 @@ async def process_input_account_name(message: Message, state: FSMContext):
 async def process_input_account_password(
     message: Message, ext_api_manager: MyExternalApiForBot, state: FSMContext, redis_service: RedisService
 ):
-    status, token, derive_key, text, buttons = await match_status_and_interface(ext_api_manager, redis_service, message.from_user.id, phrases.account_params)
+    status, token, derive_key, text, buttons = await match_status_and_interface(ext_api_manager, redis_service, message.from_user.id, phrases.account_params, need_crypto=True)
     data = await state.get_data()
     new_state = get_state_from_status(status, InputAccount.params)
     if status == AuthStage.OK:
-        user = await ext_api_manager.read_user(message.from_user.id)
-        salt_string = user.get("salt")
-        salt_bytes = base64.b64decode(salt_string.encode("utf-8"))
-        password_bytes = encrypt_account_content(message.text, derive_key, salt_bytes)
-        password_string = base64.b64encode(password_bytes).decode("utf-8")
-        await redis_service.set(f"{message.from_user.id}:data", password_string)
+        data.update(account_password=message.text)
     kb = get_inline_kb(*buttons)
     msg = data.get("msg")
     await delete_msg_if_exists(msg, message, TelegramBadRequest)
     msg = (await message.answer(text=text, reply_markup=kb)).message_id
     data.update(msg=msg)
-    await state.set_data(data)
+    await state.update_data(data)
     await state.set_state(new_state)
 
 
@@ -109,7 +103,9 @@ async def process_select_account_params(
     message: Message, state: FSMContext, ext_api_manager: MyExternalApiForBot, redis_service: RedisService
 ):
     data = await state.get_data()
+    cur_state = await state.get_state()
     account_name = data["name"]
+    account_password = data["account_password"]
     msg = data.get("msg")
     params = data["params"]
     i = data["index"]
@@ -126,11 +122,10 @@ async def process_select_account_params(
         buttons = ("MENU", "SECRET")
 
         if secret:
-            status, token, derive_key, text, buttons = await match_status_and_interface(ext_api_manager, redis_service, message.from_user.id, ok_text=text, ok_buttons=buttons)
+            #await set_previous_data(redis_service, user_id=message.from_user.id, state=cur_state, text=text, buttons=buttons)
+            status, token, derive_key, text, buttons = await match_status_and_interface(ext_api_manager, redis_service, message.from_user.id, ok_text=text, ok_buttons=buttons, need_crypto=True)
             if status == AuthStage.OK:
-                user = await ext_api_manager.read_user(access_token=token)
-                salt = user["salt"]
-                content = make_secret(message.text, derive_key, salt)
+                content = encrypt_account_content(content, derive_key)
             else:
                 proceed = False
 
@@ -146,14 +141,16 @@ async def process_select_account_params(
     if i == len(params):
         data.pop("params")
         data.pop("index")
-        data.pop("collected")
-        token, derive_key, text, buttons, status = await match_status_and_interface(ext_api_manager, redis_service, message.from_user.id, ok_text=phrases.account_created.format(account_name))
+        #await set_previous_data(redis_service, user_id=message.from_user.id, state=cur_state, text=text, buttons=buttons)
+        status, token, derive_key, text, buttons = await match_status_and_interface(ext_api_manager, redis_service, message.from_user.id, ok_text=phrases.account_created.format(account_name), need_crypto=True)
         if token:
             await ext_api_manager.create_account(
                 access_token=token,
+                password = account_password,
                 account_name = account_name,
-                params = params
+                params = data["collected"]
             )
+        data.pop("collected")
     await delete_msg_if_exists(msg, message)
     kb = get_inline_kb(**buttons)
     msg = (await message.answer(text=text, reply_markup=kb)).message_id

@@ -12,11 +12,10 @@ class UserOutput(BaseModel):
     id: int
     salt: str
 
-class UserForTokenAndKey(BaseModel):
+class UserForToken(BaseModel):
     username: str | None = None
     user_id: int | None = None
     password: str | None = None
-    salt: bytes | None = None
 
 
 class OutputToken(BaseModel):

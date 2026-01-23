@@ -1,16 +1,12 @@
-from typing import Any, Dict, List
+from pydantic import BaseModel
 
-from pydantic import BaseModel, Field
-
-
-class AccInput(BaseModel):
-    id: int | None = None
-    user_id: int
-    name: str
+class AccountInput(BaseModel):
     password: str
+    name: str
+    params: list
 
 
-class AccOutput(BaseModel):
+class AccountOutput(BaseModel):
     id: int
     user_id: int
     name: str
@@ -37,4 +33,4 @@ class ParamItem(BaseModel):
 
 class ParamInput(BaseModel):
     acc_id: int
-    items: List[ParamItem]
+    items: list[ParamItem]

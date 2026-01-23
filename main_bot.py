@@ -11,7 +11,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 from bot.handlers import main_router
 from core import conf
 from services.shared import ext_api_manager
-from services.shared.redis import get_redis_client, get_redis_service
+from services.shared.redis import get_redis_client, init_redis_service
 
 bot = Bot(conf.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 log = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 async def init_all():
     redis_client = get_redis_client()
     redis_conn = await redis_client.init_redis()
-    redis_service = get_redis_service(prefix="bot")
+    redis_service = init_redis_service(prefix="front", redis_conn=redis_conn)
     if redis_conn:
         storage = RedisStorage(redis=redis_conn, state_ttl=3600)
     else:

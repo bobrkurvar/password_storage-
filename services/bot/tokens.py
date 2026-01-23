@@ -4,6 +4,7 @@ from services.shared import MyExternalApiForBot
 from services.shared.redis import RedisService
 from enum import Enum
 from core.security import derive_master_key
+import base64
 
 # class TokenStatus(Enum):
 #     SUCCESS = "success"
@@ -65,9 +66,10 @@ async def ensure_auth(
         return None, None, AuthStage.NEED_REGISTRATION
 
     redis_key = f"{user_id}:derive_key"
-    derive_key = await redis_service.get(redis_key)
+    derive_key_str = await redis_service.get(redis_key)
 
-    if derive_key:
+    if derive_key_str:
+        derive_key = base64.b64decode(derive_key_str.encode("utf-8"))
         return token, derive_key, AuthStage.OK
 
     if password is None:
@@ -76,7 +78,8 @@ async def ensure_auth(
     user = await ext_api_manager.read_user(access_token=token)
     salt = user["salt"]
     derive_key = derive_master_key(password, salt)
-    await redis_service.set(redis_key, derive_key)
+    derive_key_str = base64.b64encode(derive_key).decode("utf-8")
+    await redis_service.set(redis_key, derive_key_str, ttl=900)
 
     return token, derive_key, AuthStage.OK
 

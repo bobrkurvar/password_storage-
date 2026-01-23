@@ -10,7 +10,7 @@ class Base(AsyncAttrs, DeclarativeBase):
 
 class User(Base):
     __tablename__ = "users"
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     username: Mapped[str] = mapped_column(unique=True)
     password: Mapped[str] = mapped_column(String(256))
     salt: Mapped[str] = mapped_column(nullable=False)
@@ -37,7 +37,7 @@ class User(Base):
 
 class Account(Base):
     __tablename__ = "accounts"
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     user_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
@@ -66,7 +66,7 @@ class Account(Base):
 
 class Param(Base):
     __tablename__ = "params"
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     account_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("accounts.id", ondelete="CASCADE"), index=True
     )

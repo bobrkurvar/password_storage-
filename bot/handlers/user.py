@@ -14,6 +14,7 @@ from bot.utils.flow import get_state_from_status
 from bot.utils.keyboards import get_inline_kb
 from services.shared import MyExternalApiForBot
 from services.shared.redis import RedisService
+from bot.utils.flow import AuthStage
 
 
 router = Router()
@@ -62,15 +63,17 @@ async def process_input_password(
 ):
     msg = (await state.get_data()).get("msg")
     cur_state = await state.get_state()
-    previous_state = await redis_service.get(f"{message.from_user.id}:previous_state")
+    previous_data = await redis_service.get(f"{message.from_user.id}:previous_data")
+    previous_state, previous_text, previous_buttons = previous_data["previous_state"], previous_data["previous_text"], previous_data["previous_buttons"]
     new_state = None
-    buttons = ("SIGN IN", "MENU")
-    text = phrases.start
+    buttons = ("SIGN IN", "MENU") if previous_buttons is None else previous_buttons
+    text = phrases.start if previous_text is None else previous_text
     if cur_state == InputUser.sign_up:
         await ext_api_manager.sign_up(message.from_user.id, message.from_user.username, message.text)
     else:
-        status, token, _, text, buttons = await match_status_and_interface(ext_api_manager, redis_service, message.from_user.id, text, password=message.text)
+        status, token, derive_key, text, buttons = await match_status_and_interface(ext_api_manager, redis_service, message.from_user.id, text, password=message.text, need_crypto=True)
         new_state = get_state_from_status(status, previous_state)
+
     kb = get_inline_kb(*buttons, user_id=message.from_user.id)
     msg = (
         await message.bot.edit_message_text(

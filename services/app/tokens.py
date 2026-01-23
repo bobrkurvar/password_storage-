@@ -51,10 +51,12 @@ async def get_tokens(manager, redis_client, password: str | None = None, user_id
             access_token = await create_dict_tokens_and_save(user_id, redis_client, roles, access_time, refresh_time, access_key, refresh_key)
         else:
             refresh_token = await redis_client.get(refresh_key)
-            if refresh_token:
-                check_refresh_token(refresh_token, ident_val)
+            #log.debug("refresh_token: %s", refresh_token)
+            if refresh_token is not None:
                 log.info("refresh token существует")
+                check_refresh_token(refresh_token, ident_val)
+                log.info("refresh token прошёл проверку")
                 access_token = await create_dict_tokens_and_save(user_id, redis_client, roles, access_time, refresh_time, access_key, refresh_key)
-    log.debug("access_token: %s", access_token)
+    #log.debug("access_token: %s", access_token)
     return access_token
 

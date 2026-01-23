@@ -12,7 +12,7 @@ from domain import Role, User
 router = APIRouter(tags=["own"])
 log = logging.getLogger(__name__)
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
-userFromTokenDep = Annotated[int, Depends(get_user_from_token)]
+userFromTokenDep = Annotated[dict, Depends(get_user_from_token)]
 
 
 @router.get(
@@ -27,7 +27,7 @@ userFromTokenDep = Annotated[int, Depends(get_user_from_token)]
         }
     },
 )
-async def read_user_by_id(user_id: userFromTokenDep, manager: dbManagerDep):
-    user = (await manager.read(User, ident="id", ident_val=user_id))[0]
+async def read_user_by_id(user: userFromTokenDep, manager: dbManagerDep):
+    user = (await manager.read(User, id=user["user_id"]))[0]
     log.debug("Пользователь получен %s, %s", user.get("id"), user.get("username"))
     return user
