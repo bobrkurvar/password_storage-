@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class UserInput(BaseModel):
     id: int | None = None
     password: str
@@ -12,15 +13,11 @@ class UserOutput(BaseModel):
     id: int
     salt: str
 
+
 class UserForToken(BaseModel):
     username: str | None = None
     user_id: int | None = None
     password: str | None = None
-
-
-class OutputToken(BaseModel):
-    access_token: str
-    refresh_token: str
 
 
 class UserRolesInput(BaseModel):
@@ -32,7 +29,3 @@ class UserRolesInput(BaseModel):
 class UserRolesOutput(BaseModel):
     role_name: str | None = None
     role_id: int
-
-
-class AdminsId(BaseModel):
-    id: int

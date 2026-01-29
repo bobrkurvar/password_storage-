@@ -10,8 +10,8 @@ from aiogram.fsm.storage.redis import RedisStorage
 
 from bot.handlers import main_router
 from core import conf
-from services.shared import ext_api_manager
-from services.shared.redis import get_redis_client, init_redis_service
+from shared.adapters.external import ext_api_manager
+from shared.adapters.redis import get_redis_client, init_redis_service
 
 bot = Bot(conf.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 log = logging.getLogger(__name__)

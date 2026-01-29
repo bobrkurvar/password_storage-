@@ -1,18 +1,17 @@
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
-from fastapi_limiter.depends import RateLimiter
-
-from app.endpoints import main_router
-from app.exceptions.handlers import *
-from repo import get_db_manager
-from repo.exceptions import *
-from services.shared.redis import get_redis_client
 from fastapi_limiter import FastAPILimiter
-from services.shared.redis import init_redis_service
+from fastapi_limiter.depends import RateLimiter
+from app.endpoints import main_router
+#from app.exceptions.handlers import *
+from shared.adapters.redis import get_redis_client, init_redis_service
+from app.adapters.crud import get_db_manager
+import logging
 
 dep = []
 
+log = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,19 +32,18 @@ async def lifespan(app: FastAPI):
     await redis_service.redis.close()
 
 
-log = logging.getLogger(__name__)
 
 app = FastAPI(lifespan=lifespan, dependencies=dep)
 
 app.include_router(main_router)
-app.add_exception_handler(NotFoundError, not_found_in_db_exceptions_handler)
-app.add_exception_handler(
-    AlreadyExistsError, entity_already_exists_in_db_exceptions_handler
-)
-app.add_exception_handler(
-    CustomForeignKeyViolationError, foreign_key_violation_exceptions_handler
-)
-app.add_exception_handler(DatabaseError, data_base_exception_handler)
-app.add_exception_handler(UnauthorizedError, no_auth_exception_handler)
-
-app.add_exception_handler(Exception, global_exception_handler)
+# app.add_exception_handler(NotFoundError, not_found_in_db_exceptions_handler)
+# app.add_exception_handler(
+#     AlreadyExistsError, entity_already_exists_in_db_exceptions_handler
+# )
+# app.add_exception_handler(
+#     CustomForeignKeyViolationError, foreign_key_violation_exceptions_handler
+# )
+# app.add_exception_handler(DatabaseError, data_base_exception_handler)
+# app.add_exception_handler(UnauthorizedError, no_auth_exception_handler)
+#
+# app.add_exception_handler(Exception, global_exception_handler)

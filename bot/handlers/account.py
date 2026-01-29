@@ -1,4 +1,3 @@
-import base64
 import logging
 
 from aiogram import F, Router
@@ -8,18 +7,16 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from aiogram.types import CallbackQuery, Message
 
-from bot.filters import CallbackFactory
-from bot.filters.states import InputAccount
-from bot.lexicon import phrases
-from bot.utils.keyboards import get_inline_kb
-from core.security import decrypt_account_content, encrypt_account_content
-from services.shared.external import MyExternalApiForBot
-from services.shared.redis import RedisService
-from services.bot.tokens import AuthStage, match_status_and_interface
-from services.bot.messages import delete_msg_if_exists, set_previous_data
+from bot.dialog.callback import CallbackFactory
+from bot.dialog.states import InputAccount
+from bot.services.messages import delete_msg_if_exists, set_previous_data
+from bot.services.tokens import AuthStage, match_status_and_interface
+from bot.texts import phrases
 from bot.utils.flow import get_state_from_status
-from bot.filters.states import InputUser
-
+from bot.utils.keyboards import get_inline_kb
+from bot.services.users import encrypt_account_content
+from shared.adapters.external import MyExternalApiForBot
+from shared.adapters.redis import RedisService
 
 router = Router()
 log = logging.getLogger(__name__)
@@ -29,13 +26,26 @@ log = logging.getLogger(__name__)
     StateFilter(default_state),
     CallbackFactory.filter(F.act.lower() == "create account"),
 )
-async def process_create_account(callback: CallbackQuery, state: FSMContext, ext_api_manager: MyExternalApiForBot, redis_service: RedisService):
-    status, token, _, text, buttons = await match_status_and_interface(ext_api_manager, redis_service, callback.from_user.id, phrases.account_name)
+async def process_create_account(
+    callback: CallbackQuery,
+    state: FSMContext,
+    ext_api_manager: MyExternalApiForBot,
+    redis_service: RedisService,
+):
+    status, _, _, text, buttons = await match_status_and_interface(
+        ext_api_manager, redis_service, callback.from_user.id, phrases.account_name
+    )
+    if status != AuthStage.OK:
+        await set_previous_data(
+            redis_service,
+            InputAccount.name,
+            callback.from_user.id,
+            phrases.account_name,
+            ("MENU",),
+        )
     new_state = get_state_from_status(status, InputAccount.name)
     kb = get_inline_kb(*buttons)
-    msg = (
-        await callback.message.edit_text(text=text, reply_markup=kb)
-    ).message_id
+    msg = (await callback.message.edit_text(text=text, reply_markup=kb)).message_id
     await state.set_state(new_state)
     await state.update_data(msg=msg)
 
@@ -44,10 +54,7 @@ async def process_create_account(callback: CallbackQuery, state: FSMContext, ext
 async def process_input_account_name(message: Message, state: FSMContext):
     kb = get_inline_kb("MENU")
     msg = (await state.get_data()).get("msg")
-    try:
-        await message.bot.delete_message(chat_id=message.chat.id, message_id=msg)
-    except TelegramBadRequest:
-        pass
+    await delete_msg_if_exists(msg, message, TelegramBadRequest)
     msg = (
         await message.answer(text=phrases.account_password, reply_markup=kb)
     ).message_id
@@ -57,20 +64,19 @@ async def process_input_account_name(message: Message, state: FSMContext):
 
 @router.message(StateFilter(InputAccount.password))
 async def process_input_account_password(
-    message: Message, ext_api_manager: MyExternalApiForBot, state: FSMContext, redis_service: RedisService
+    message: Message,
+    state: FSMContext,
 ):
-    status, token, derive_key, text, buttons = await match_status_and_interface(ext_api_manager, redis_service, message.from_user.id, phrases.account_params, need_crypto=True)
     data = await state.get_data()
-    new_state = get_state_from_status(status, InputAccount.params)
-    if status == AuthStage.OK:
-        data.update(account_password=message.text)
+    data.update(account_password=message.text)
+    buttons = ("MENU", )
     kb = get_inline_kb(*buttons)
     msg = data.get("msg")
     await delete_msg_if_exists(msg, message, TelegramBadRequest)
-    msg = (await message.answer(text=text, reply_markup=kb)).message_id
+    msg = (await message.answer(text=phrases.account_params, reply_markup=kb)).message_id
     data.update(msg=msg)
     await state.update_data(data)
-    await state.set_state(new_state)
+    await state.set_state(InputAccount.params)
 
 
 @router.message(StateFilter(InputAccount.params))
@@ -78,6 +84,8 @@ async def process_params_list(
     message: Message,
     state: FSMContext,
 ):
+    data = await state.get_data()
+    msg = data.get("msg")
     params = [
         p.strip()
         for p in message.text.split()
@@ -88,31 +96,33 @@ async def process_params_list(
         await message.answer("Нет параметров")
         return
 
-    await state.update_data({
-        "params": params,
-        "index": 0,
-        "collected": [],
-    })
+    await state.update_data(
+        {
+            "params": params,
+            "index": 0,
+            "collected": [],
+        }
+    )
 
+    await delete_msg_if_exists(msg, message, TelegramBadRequest)
     kb = get_inline_kb("MENU", "SECRET")
-    await message.answer(f"Введите {params[0]}", reply_markup=kb)
+    msg = (await message.answer(f"Введите {params[0]}", reply_markup=kb)).message_id
+    await state.update_data(msg=msg)
     await state.set_state(InputAccount.input)
+
 
 @router.message(StateFilter(InputAccount.input))
 async def process_select_account_params(
-    message: Message, state: FSMContext, ext_api_manager: MyExternalApiForBot, redis_service: RedisService
+    message: Message,
+    state: FSMContext,
+    ext_api_manager: MyExternalApiForBot,
+    redis_service: RedisService,
 ):
-    data = await state.get_data()
-    cur_state = await state.get_state()
-    account_name = data["name"]
-    account_password = data["account_password"]
-    msg = data.get("msg")
-    params = data["params"]
-    i = data["index"]
+    data, cur_state = await state.get_data(), await state.get_state()
+    msg, params, i = data["msg"], data["params"], data["index"]
     buttons = ("MENU",)
     text = phrases.start
-    status = None
-    proceed = True
+    status, proceed = None, True
 
     if params:
         current_param = params[i]
@@ -122,40 +132,71 @@ async def process_select_account_params(
         buttons = ("MENU", "SECRET")
 
         if secret:
-            status, token, derive_key, text, buttons = await match_status_and_interface(ext_api_manager, redis_service, message.from_user.id, ok_text=text, ok_buttons=buttons, need_crypto=True)
+            status, _, derive_key, text, buttons = await match_status_and_interface(
+                ext_api_manager,
+                redis_service,
+                message.from_user.id,
+                ok_text=text,
+                ok_buttons=buttons,
+                need_crypto=True,
+            )
             if status == AuthStage.OK:
                 content = encrypt_account_content(content, derive_key)
             else:
+                await set_previous_data(
+                    redis_service,
+                    cur_state,
+                    message.from_user.id,
+                    f"Введите {current_param}",
+                    ("MENU", "SECRET"),
+                )
                 proceed = False
-                #await set_previous_data(redis_service, user_id=message.from_user.id, state=cur_state, text=text, buttons=buttons)
 
         if proceed:
-            data["collected"].append({
-                "name": current_param,
-                "content": content,
-                "secret": secret,
-            })
+            data["collected"].append(
+                {
+                    "name": current_param,
+                    "content": content,
+                    "secret": secret,
+                }
+            )
             i += 1
             data["index"] = i
 
     if i == len(params):
         data.pop("params")
         data.pop("index")
-        #await set_previous_data(redis_service, user_id=message.from_user.id, state=cur_state, text=text, buttons=buttons)
-        status, token, derive_key, text, buttons = await match_status_and_interface(ext_api_manager, redis_service, message.from_user.id, ok_text=phrases.account_created.format(account_name), need_crypto=True)
-        if token:
+        account_password, account_name = data.pop("account_password"), data.pop("name")
+        status, token, derive_key, text, buttons = await match_status_and_interface(
+            ext_api_manager,
+            redis_service,
+            message.from_user.id,
+            ok_text=phrases.account_created.format(account_name),
+            need_crypto=True,
+        )
+        if status == AuthStage.OK:
+            password = encrypt_account_content(account_password, derive_key)
             await ext_api_manager.create_account(
                 access_token=token,
-                password = account_password,
-                account_name = account_name,
-                params = data["collected"]
+                password=password,
+                account_name=account_name,
+                params=data["collected"],
+            )
+        else:
+            await set_previous_data(
+                redis_service,
+                cur_state,
+                message.from_user.id,
+                phrases.account_created.format(account_name),
+                ("MENU",),
             )
         data.pop("collected")
+
     await delete_msg_if_exists(msg, message)
-    kb = get_inline_kb(**buttons)
+    kb = get_inline_kb(*buttons)
     msg = (await message.answer(text=text, reply_markup=kb)).message_id
     data.update(msg=msg)
-    new_state = get_state_from_status(status)
+    new_state = get_state_from_status(status, cur_state)
     await state.set_data(data)
     await state.set_state(new_state)
 
@@ -165,7 +206,8 @@ async def process_select_account_params(
     CallbackFactory.filter(F.act.lower() == "secret"),
 )
 async def press_button_secret_param(callback: CallbackQuery, state: FSMContext):
-    cur_par = (await state.get_data()).get("params_lst")[0]
+    data = await state.get_data()
+    cur_par = data["params"][data["index"]]
     kb = get_inline_kb("MENU")
     msg = (
         await callback.message.edit_text(text=f"Введите {cur_par}", reply_markup=kb)

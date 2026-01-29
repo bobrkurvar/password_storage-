@@ -4,10 +4,10 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from bot.filters.callback_factory import CallbackFactory
-from bot.lexicon import phrases
+from bot.dialog.callback import CallbackFactory
+from bot.texts import phrases
+from bot.services.messages import delete_msg_if_exists
 from bot.utils.keyboards import get_inline_kb
-from services.bot.messages import delete_msg_if_exists
 
 router = Router()
 

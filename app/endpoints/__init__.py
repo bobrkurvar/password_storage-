@@ -1,8 +1,8 @@
 from fastapi import APIRouter, status
 
-from app.exceptions.schemas import ErrorResponse
+from app.endpoints.schemas.errors import ErrorResponse
 
-from . import accounts, params, token, user
+from . import accounts, users, accounts_manage, users_manage
 
 main_router = APIRouter(
     responses={
@@ -17,7 +17,7 @@ main_router = APIRouter(
         status.HTTP_403_FORBIDDEN: {"detail": "Role error", "model": ErrorResponse},
     },
 )
-main_router.include_router(user.router)
-main_router.include_router(params.router, prefix="/account/params")
+main_router.include_router(users.router)
 main_router.include_router(accounts.router)
-main_router.include_router(token.router)
+main_router.include_router(users_manage.router)
+main_router.include_router(accounts_manage.router)
