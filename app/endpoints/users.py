@@ -36,7 +36,7 @@ async def read_user_by_id(user: getUserFromTokenDep, manager: dbManagerDep):
     log.debug("Пользователь получен %s, %s", user.get("id"), user.get("username"))
     return user
 
-@router.post("/sign-up")
+@router.post("")
 async def sign_up(manager: dbManagerDep, user: UserForToken):
     return await user_sign_up(manager, user.user_id, user.password, user.username)
 

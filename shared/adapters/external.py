@@ -47,7 +47,7 @@ class MyExternalApiForBot:
 
     async def sign_up(self, user_id: int | None, username: str | None, password: str):
         async with self._session.post(
-            self._url + "user/sign-up",
+            self._url,
             json={"user_id": user_id, "username": username, "password": password},
         ) as resp:
             try:
