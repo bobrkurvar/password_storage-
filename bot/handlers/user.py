@@ -8,7 +8,7 @@ from shared.adapters.external import MyExternalApiForBot
 
 from bot.dialog.states import InputUser
 from bot.texts import phrases
-from bot.services.tokens import match_status_and_interface, AuthStage
+from bot.services.tokens import match_status_and_interface, ensure_auth, AuthStage
 from bot.utils.flow import get_state_from_status
 from bot.utils.keyboards import get_inline_kb
 from shared.adapters.redis import RedisService
@@ -44,19 +44,19 @@ async def process_input_password(
     )
     text = phrases.start if previous_text is None else previous_text
     if cur_state == InputUser.sign_up:
+        log.debug("register - sign_up")
         await ext_api_manager.sign_up(
             message.from_user.id, message.from_user.username, message.text
         )
     else:
-        status, _, _, text, buttons = await match_status_and_interface(
+        _, _, status = await ensure_auth(
             ext_api_manager,
             redis_service,
             message.from_user.id,
-            text,
-            buttons,
             password=message.text,
             need_crypto=True,
         )
+        text, buttons = match_status_and_interface(status, text, buttons)
         if status == AuthStage.OK:
             await redis_service.pop(f"{message.from_user.id}:previous_data")
         new_state = get_state_from_status(status, previous_state)

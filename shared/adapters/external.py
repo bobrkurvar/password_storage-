@@ -39,15 +39,12 @@ class MyExternalApiForBot:
         async with self._session.post(
             self._url + "user/token", json={"user_id": user_id, "password": password}
         ) as resp:
-            try:
-                resp.raise_for_status()
-                return await resp.json()
-            except ClientResponseError:
-                return None
+            resp.raise_for_status()
+            return await resp.json()
 
     async def sign_up(self, user_id: int | None, username: str | None, password: str):
         async with self._session.post(
-            self._url,
+            self._url + "user",
             json={"user_id": user_id, "username": username, "password": password},
         ) as resp:
             try:

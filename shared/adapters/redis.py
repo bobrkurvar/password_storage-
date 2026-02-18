@@ -29,8 +29,6 @@ class RedisClient:
                 await redis.connection_pool.disconnect()
             except Exception:
                 pass
-            finally:
-                return None
 
     async def close_redis(self):
         try:
@@ -52,11 +50,13 @@ class RedisService:
         self.prefix = prefix
         self.redis = redis
 
+    # def init_conn(self, redis):
+    #     self.redis = redis
+    #
+    # def set_prefix(self, prefix: str):
+    #     self.prefix = prefix
     def init_conn(self, redis):
         self.redis = redis
-
-    def set_prefix(self, prefix: str):
-        self.prefix = prefix
 
     async def set(
         self,
@@ -71,7 +71,8 @@ class RedisService:
             ex=ttl,
         )
 
-    def close(self):
+    async def close(self):
+        await self.redis.close()
         self.redis = None
 
     async def get(self, key: str):
@@ -93,14 +94,14 @@ class RedisService:
         return bool(await self.redis.exists(key))
 
 
-redis_service = RedisService()
+redis_service: RedisService | None = None
 
 
-def init_redis_service(redis_conn, prefix: str = ""):
-    redis_service.init_conn(redis_conn)
-    redis_service.set_prefix(prefix)
-    return redis_service
 
-
-def get_redis_service():
+def get_redis_service(redis_conn=None, prefix: str = ""):
+    global redis_service
+    if redis_service is None:
+        redis_service = RedisService(redis_conn, prefix)
+    # redis_service.init_conn(redis_conn)
+    # redis_service.set_prefix(prefix)
     return redis_service

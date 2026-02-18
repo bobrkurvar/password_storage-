@@ -16,15 +16,23 @@ log = logging.getLogger(__name__)
 
 
 class Crud:
-    _engine = None
-    _session_factory = None
-
     def __init__(self, url, domain_with_orm: dict | None = None):
-        if self.__class__._engine is None:
-            self.__class__._engine = create_async_engine(url)
-        if self.__class__._session_factory is None:
-            self.__class__._session_factory = async_sessionmaker(self._engine)
+        self.url = url
+        self._engine = None
+        self._session_factory = None
         self._mapper = domain_with_orm if domain_with_orm else {}
+
+    def connect(self):
+        if self._engine is None:
+            self._engine = create_async_engine(self.url)
+        if self._session_factory is None:
+            self._session_factory = async_sessionmaker(self._engine)
+
+    async def close_and_dispose(self):
+        log.debug("подключение к движку %s закрывается", self._engine)
+        await self._engine.dispose()
+        self._session_factory = None
+        self._engine = None
 
     def register(self, domain_cls, orm_cls):
         self._mapper[domain_cls] = orm_cls
@@ -94,7 +102,7 @@ class Crud:
             delete_query = delete(model).where(*conditions).returning(model)
 
             result = await session.execute(delete_query)
-            deleted_records = result.scalars().all()
+            deleted_records = result.scalars()
 
             if not deleted_records:
                 raise NotFoundError(model.__name__, str(filters))
@@ -106,7 +114,7 @@ class Crud:
                 filters,
             )
 
-            return [record.model_dump() for record in result]
+            return tuple(record.model_dump() for record in result)
 
         if session is not None:
             return await _delete_internal(session)
@@ -187,10 +195,8 @@ class Crud:
             async with self._session_factory.begin() as session:
                 return await _read_internal(session)
 
-    async def close_and_dispose(self):
-        log.debug("подключение к движку %s закрывается", self._engine)
-        await self._engine.dispose()
 
+db_manager: Crud | None = None
 
 def get_db_manager() -> Crud:
     db_url = conf.db_url
@@ -202,4 +208,7 @@ def get_db_manager() -> Crud:
         domain.Param: models.Param,
         domain.Admin: models.Admin,
     }
-    return Crud(db_url, domain_with_orm)
+    global db_manager
+    if db_manager is None:
+        db_manager = Crud(db_url, domain_with_orm)
+    return db_manager

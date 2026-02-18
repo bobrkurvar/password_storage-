@@ -1,16 +1,21 @@
 import asyncio
 import logging
 
-from app.adapters.repo import get_db_manager
-from app.domain import Role
+from app.adapters.crud import get_db_manager
+from app.domain import Role, AlreadyExistsError
 
 log = logging.getLogger(__name__)
 manager = get_db_manager()
 
+_ROLES = ["admin", "user"]
 
 async def add_roles():
-    await manager.create(Role, [{"role_name": "admin"}, {"role_name": "user"}])
-
+    manager.connect()
+    for role in _ROLES:
+        try:
+            await manager.create(Role, role_name=role)
+        except AlreadyExistsError:
+            log.debug("role %s already exists", role)
 
 if __name__ == "__main__":
     log.debug("старт создания ролей")

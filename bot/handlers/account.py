@@ -10,7 +10,7 @@ from aiogram.types import CallbackQuery, Message
 from bot.dialog.callback import CallbackFactory
 from bot.dialog.states import InputAccount
 from bot.services.messages import delete_msg_if_exists, set_previous_data
-from bot.services.tokens import AuthStage, match_status_and_interface
+from bot.services.tokens import AuthStage, match_status_and_interface, ensure_auth
 from bot.texts import phrases
 from bot.utils.flow import get_state_from_status
 from bot.utils.keyboards import get_inline_kb
@@ -32,9 +32,8 @@ async def process_create_account(
     ext_api_manager: MyExternalApiForBot,
     redis_service: RedisService,
 ):
-    status, _, _, text, buttons = await match_status_and_interface(
-        ext_api_manager, redis_service, callback.from_user.id, phrases.account_name
-    )
+    _, _, status = await ensure_auth(ext_api_manager, redis_service, callback.from_user.id)
+    text, buttons = match_status_and_interface(status, phrases.account_name)
     if status != AuthStage.OK:
         await set_previous_data(
             redis_service,
@@ -132,14 +131,13 @@ async def process_select_account_params(
         buttons = ("MENU", "SECRET")
 
         if secret:
-            status, _, derive_key, text, buttons = await match_status_and_interface(
+            _, derive_key, status = await ensure_auth(
                 ext_api_manager,
                 redis_service,
                 message.from_user.id,
-                ok_text=text,
-                ok_buttons=buttons,
                 need_crypto=True,
             )
+            text, buttons = match_status_and_interface(status, text, buttons)
             if status == AuthStage.OK:
                 content = encrypt_account_content(content, derive_key)
             else:
@@ -167,13 +165,13 @@ async def process_select_account_params(
         data.pop("params")
         data.pop("index")
         account_password, account_name = data.pop("account_password"), data.pop("name")
-        status, token, derive_key, text, buttons = await match_status_and_interface(
+        token, derive_key, status = await ensure_auth(
             ext_api_manager,
             redis_service,
             message.from_user.id,
-            ok_text=phrases.account_created.format(account_name),
             need_crypto=True,
         )
+        text, buttons = match_status_and_interface(status, phrases.account_created.format(account_name))
         if status == AuthStage.OK:
             password = encrypt_account_content(account_password, derive_key)
             await ext_api_manager.create_account(
@@ -191,7 +189,6 @@ async def process_select_account_params(
                 ("MENU",),
             )
         data.pop("collected")
-
     await delete_msg_if_exists(msg, message)
     kb = get_inline_kb(*buttons)
     msg = (await message.answer(text=text, reply_markup=kb)).message_id

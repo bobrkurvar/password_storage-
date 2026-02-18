@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     api_host: str
     secret_key: str
     algorithm: str
+    queue_host: str
 
     @property
     def db_url(self):

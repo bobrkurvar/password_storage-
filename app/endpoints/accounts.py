@@ -43,7 +43,7 @@ dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
     },
 )
 async def user_accounts_list(user: getUserFromTokenDep, manager: dbManagerDep):
-    log.debug(f"получение списка аккаунтов для пользователя с {user.get("user_id")}")
+    log.debug(f"получение списка аккаунтов для пользователя с {user.get('user_id')}")
     acc_lst = await manager.read(
         Account, ident="user_id", ident_val=int(user.get("user_id"))
     )
