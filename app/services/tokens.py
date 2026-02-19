@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from core import conf
 import jwt
 import bcrypt
-from app.domain.exceptions import NotFoundError, UnauthorizedError
+from app.domain.exceptions import NotFoundError, InvalidRefreshTokenError, RefreshTokenExpireError, CredentialsValidateError
 
 log = logging.getLogger(__name__)
 secret_key = conf.secret_key
@@ -33,30 +33,53 @@ def create_refresh_token(data: dict, expires_delta: timedelta = None) -> str:
     return jwt.encode(to_encode, secret_key, algorithm)
 
 
-def check_refresh_token(refresh_token: str, my_id: int):
+# def check_refresh_token(refresh_token: str, my_id: int):
+#     try:
+#         payload = jwt.decode(refresh_token, secret_key, algorithms=algorithm)
+#     except jwt.ExpiredSignatureError:
+#         raise RefreshTokenExpireError
+#     except jwt.InvalidTokenError:
+#         raise InvalidRefreshTokenError
+#
+#     if payload.get("type") != "refresh":
+#         raise InvalidRefreshTokenError
+#
+#     if payload.get("sub") != str(my_id):
+#         raise InvalidRefreshTokenError
+
+def check_refresh_token(refresh_token: str):
     try:
         payload = jwt.decode(refresh_token, secret_key, algorithms=algorithm)
     except jwt.ExpiredSignatureError:
-        raise UnauthorizedError(refresh_token=True)
+        raise RefreshTokenExpireError
     except jwt.InvalidTokenError:
-        raise UnauthorizedError(access_token=True)
+        raise InvalidRefreshTokenError
 
     if payload.get("type") != "refresh":
-        raise UnauthorizedError(refresh_token=True)
+        raise InvalidRefreshTokenError
 
-    if payload.get("sub") != str(my_id):
-        raise UnauthorizedError(access_token=True)
+    return jwt.decode(refresh_token, secret_key, algorithms=algorithm)
 
 
 async def create_dict_tokens_and_save(
-    user_id, redis_client, roles, access_time, refresh_time, access_key, refresh_key
+    user_id, redis_client, manager
 ):
+    access_time, refresh_time = 900, 86400 * 7
+    roles = await manager.read(
+        User,
+        id=user_id,
+        to_join=[
+            "roles",
+        ],
+    )
+    roles = [role.get("role_name") for role in roles]
     access_token = create_access_token(
         {"sub": str(user_id), "roles": roles, "type": "access"}
     )
     refresh_token = create_refresh_token(
         {"sub": str(user_id), "roles": roles, "type": "refresh"}
     )
+    access_key, refresh_key = f"{user_id}:access_token", f"{user_id}:refresh_token"
     await redis_client.set(
         access_key,
         value=access_token,
@@ -72,68 +95,52 @@ async def create_dict_tokens_and_save(
 def verify(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
-async def get_tokens(
-    manager,
-    redis_client,
-    password: str | None = None,
-    user_id: int | None = None,
-    username: str | None = None,
-):
+
+async def get_user_for_token(manager, user_id: int = None, username: str | None = None):
     if user_id is None:
         ident, ident_val = "username", username
         cur = await manager.read(User, username=username)
     else:
         ident, ident_val = "id", user_id
         cur = await manager.read(User, id=int(user_id))
-    if len(cur) == 0:
+    try:
+        return cur[0]
+    except IndexError:
         log.debug("USER NOT FOUND")
         raise NotFoundError(User, ident, ident_val)
-    cur = cur[0]
-    ident_val = cur.get("id")
-    access_key, refresh_key = f"{ident_val}:access_token", f"{ident_val}:refresh_token"
-    access_token = await redis_client.get(access_key)
-    if not access_token:
-        log.info("access token не существует")
-        roles = await manager.read(
-            User,
-            id=ident_val,
-            to_join=[
-                "roles",
-            ],
-        )
-        roles = [role.get("role_name") for role in roles]
-        access_time = 900
-        refresh_time = 86400 * 7
-        if password is not None:
-            if verify(password, cur.get("password")):
-                log.debug("password verify")
-                access_token = await create_dict_tokens_and_save(
-                    user_id,
-                    redis_client,
-                    roles,
-                    access_time,
-                    refresh_time,
-                    access_key,
-                    refresh_key,
-                )
-            else:
-                raise UnauthorizedError(validate=True)
-        else:
-            refresh_token = await redis_client.get(refresh_key)
-            if refresh_token is not None:
-                log.info("refresh token существует")
-                check_refresh_token(refresh_token, ident_val)
-                log.info("refresh token прошёл проверку")
-                access_token = await create_dict_tokens_and_save(
-                    user_id,
-                    redis_client,
-                    roles,
-                    access_time,
-                    refresh_time,
-                    access_key,
-                    refresh_key,
-                )
-            else:
-                raise UnauthorizedError(refresh_token=True)
 
+
+
+async def get_access_token_with_password_verify(
+        redis_client,
+        manager,
+        password: str,
+        user_id: int | None = None,
+        username: str | None = None,
+
+):
+    user = await get_user_for_token(manager, user_id, username)
+    if verify(password, user.get("password")):
+        log.debug("password verify")
+        return await create_dict_tokens_and_save(
+            user.get("id"),
+            redis_client,
+            manager
+        )
+    else:
+        raise CredentialsValidateError
+
+
+async def get_access_token_from_refresh(
+    manager,
+    redis_client,
+    refresh_token: str
+):
+    refresh_token_payload = check_refresh_token(refresh_token)
+    user_id = refresh_token_payload["sub"]
+    access_token = await create_dict_tokens_and_save(
+        user_id,
+        redis_client,
+        manager
+    )
     return access_token

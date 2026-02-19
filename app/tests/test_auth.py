@@ -1,7 +1,7 @@
 import pytest
-from .conftests import get_tokens
+from .conftest import get_tokens
 from app.services.tokens import check_refresh_token
-from app.domain.exceptions import UnauthorizedError
+from app.domain.exceptions import InvalidRefreshTokenError
 
 @pytest.mark.asyncio
 async def test_check_refresh_token_success(get_tokens):
@@ -18,7 +18,7 @@ async def test_check_refresh_token_fail_type(get_tokens):
     access_data = {"sub": user_id, "type": "access"}
     refresh_data = {"sub": user_id}
     _, refresh_token = get_tokens(access_data=access_data, refresh_data=refresh_data)
-    with pytest.raises(UnauthorizedError):
+    with pytest.raises(InvalidRefreshTokenError):
         await check_refresh_token(refresh_token, user_id)
     assert True
 

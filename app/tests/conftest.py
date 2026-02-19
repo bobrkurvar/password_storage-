@@ -3,8 +3,8 @@ from app.services.tokens import create_access_token, create_refresh_token
 from datetime import timedelta
 from core.logger import setup_logging
 import logging
-import asyncio
 
+setup_logging()
 log = logging.getLogger(__name__)
 
 @pytest.fixture
@@ -20,7 +20,3 @@ def get_tokens():
         refresh_token = create_refresh_token(refresh_data, time_life)
         return access_token, refresh_token
     return token_factory
-
-@pytest.fixture(autouse=True, scope="session")
-def core_logger():
-    asyncio.run(setup_logging())
