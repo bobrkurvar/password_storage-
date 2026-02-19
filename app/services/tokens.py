@@ -42,7 +42,7 @@ def check_refresh_token(refresh_token: str, my_id: int):
         raise UnauthorizedError(access_token=True)
 
     if payload.get("type") != "refresh":
-        raise UnauthorizedError(access_token=True)
+        raise UnauthorizedError(refresh_token=True)
 
     if payload.get("sub") != str(my_id):
         raise UnauthorizedError(access_token=True)

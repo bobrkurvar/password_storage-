@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BOT_ADMINS = [1295347345]
@@ -24,6 +22,6 @@ class Settings(BaseSettings):
         return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 
 
-def load_config(path: Path | None = None) -> Settings:
-    conf = Settings(_env_file=path) if path else Settings()
+def load_config() -> Settings:
+    conf = Settings()
     return conf

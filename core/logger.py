@@ -64,7 +64,7 @@ class RabbitMQHandler(logging.Handler):
             self.handleError(record)
 
 
-async def setup_logging(service_name: str, queue_client = None):
+async def setup_logging(service_name: str = "", queue_client = None):
     logger = logging.getLogger()
     if queue_client:
         rabbit_handler = RabbitMQHandler(queue_client, "logs_queue", service_name)
