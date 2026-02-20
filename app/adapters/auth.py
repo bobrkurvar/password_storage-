@@ -7,7 +7,7 @@ from fastapi.security.oauth2 import OAuth2PasswordBearer
 
 from app.adapters.crud import Crud, get_db_manager
 from app.domain import Role
-from app.domain.exceptions import UnauthorizedError
+from app.domain.exceptions import AccessTokenExpireError, InvalidAccessTokenError
 from core import conf
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login", auto_error=False)
@@ -26,12 +26,12 @@ def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
         roles = payload.get("roles")
         if user_id is None:
             log.debug("user_id is None")
-            raise UnauthorizedError(validate=True)
+            raise InvalidAccessTokenError
         user = {"user_id": int(user_id), "roles": roles}
     except jwt.ExpiredSignatureError:
-        raise UnauthorizedError(refresh_token=True)
+        raise AccessTokenExpireError
     except jwt.InvalidTokenError:
-        raise UnauthorizedError(access_token=True)
+        raise InvalidAccessTokenError
     return user
 
 

@@ -8,24 +8,14 @@ class UserInput(BaseModel):
     salt: str
 
 
-class UserOutput(BaseModel):
-    username: str
-    id: int
-    salt: str
-
-
 class UserForToken(BaseModel):
     username: str | None = None
-    user_id: int | None = None
+    user_id: int
     password: str | None = None
 
+class UserForRegistration(BaseModel):
+    user_id: int
+    username: str
+    password: str
 
-class UserRolesInput(BaseModel):
-    user_id: int | None = None
-    role_name: str | None = None
-    role_id: int | None = None
 
-
-class UserRolesOutput(BaseModel):
-    role_name: str | None = None
-    role_id: int

@@ -10,7 +10,7 @@ from app.domain import User
 from app.endpoints.schemas.user import UserOutput, UserForToken
 from app.endpoints.schemas.errors import ErrorResponse
 from app.services.tokens import get_tokens
-from app.services.users import user_sign_up
+from app.services.users import registration
 from shared.adapters.redis import RedisService, get_redis_service
 
 router = APIRouter(prefix="/user", tags=["own"])
@@ -38,11 +38,11 @@ async def read_user_by_id(user: getUserFromTokenDep, manager: dbManagerDep):
 
 @router.post("")
 async def sign_up(manager: dbManagerDep, user: UserForToken):
-    return await user_sign_up(manager, user.user_id, user.password, user.username)
+    return await registration(manager, user.user_id, user.password, user.username)
 
 
 @router.post("/token")
-async def sign_in(
+async def token(
     manager: dbManagerDep, redis_service: redisServiceDep, user: UserForToken
 ):
     try:

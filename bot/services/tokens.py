@@ -26,13 +26,16 @@ async def ensure_auth(
     need_crypto: bool = False,
 ):
     try:
-        token = await ext_api_manager.token(user_id, password)
-        log.debug("token: %s", token)
+        access_key = f"{user_id}:access_token"
+        token = await redis_service.get(access_key)
         if token is None:
-            if password is None:
-                return None, None, AuthStage.NEED_PASSWORD
-            else:
-                return None, None, AuthStage.WRONG_PASSWORD
+            access_token_ttl = 900
+            token = await ext_api_manager.auth(user_id, password, ttl=access_token_ttl)
+            await redis_service.set(access_key, token, )
+        log.debug("token: %s", token)
+
+        if token is None:
+            return None, None, AuthStage.NEED_PASSWORD if password is None else None, None, AuthStage.WRONG_PASSWORD
         if not need_crypto:
             return token, None, AuthStage.OK
     except:

@@ -19,6 +19,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
         else datetime.now(timezone.utc) + timedelta(minutes=15)
     )
     to_encode.update({"exp": expire})
+    to_encode.update({"type": "access"})
     return jwt.encode(to_encode, secret_key, algorithm)
 
 
@@ -30,67 +31,52 @@ def create_refresh_token(data: dict, expires_delta: timedelta = None) -> str:
         else datetime.now(timezone.utc) + timedelta(days=7)
     )
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, secret_key, algorithm)
+    to_encode.update({"type": "refresh"})
+    log.debug("refresh to_encode: %s", to_encode)
+    return jwt.encode(to_encode, secret_key, algorithm=algorithm)
 
 
-# def check_refresh_token(refresh_token: str, my_id: int):
-#     try:
-#         payload = jwt.decode(refresh_token, secret_key, algorithms=algorithm)
-#     except jwt.ExpiredSignatureError:
-#         raise RefreshTokenExpireError
-#     except jwt.InvalidTokenError:
-#         raise InvalidRefreshTokenError
-#
-#     if payload.get("type") != "refresh":
-#         raise InvalidRefreshTokenError
-#
-#     if payload.get("sub") != str(my_id):
-#         raise InvalidRefreshTokenError
-
-def check_refresh_token(refresh_token: str):
+def check_refresh_token(refresh_token: str, my_id: int):
     try:
-        payload = jwt.decode(refresh_token, secret_key, algorithms=algorithm)
+        payload = jwt.decode(refresh_token, secret_key, algorithms=[algorithm])
     except jwt.ExpiredSignatureError:
         raise RefreshTokenExpireError
-    except jwt.InvalidTokenError:
-        raise InvalidRefreshTokenError
+    except jwt.InvalidTokenError as exc:
+        log.exception("ошибка декодирования refresh токена")
+        raise InvalidRefreshTokenError from exc
 
     if payload.get("type") != "refresh":
         raise InvalidRefreshTokenError
 
-    return jwt.decode(refresh_token, secret_key, algorithms=algorithm)
+    if payload.get("sub") != str(my_id):
+        raise InvalidRefreshTokenError
 
 
-async def create_dict_tokens_and_save(
-    user_id, redis_client, manager
+async def create_tokens_and_save_refresh(
+    user_id, redis_service, manager
 ):
-    access_time, refresh_time = 900, 86400 * 7
-    roles = await manager.read(
+    refresh_time = 86400 * 7
+    user_roles = (await manager.read(
         User,
         id=user_id,
         to_join=[
             "roles",
         ],
-    )
-    roles = [role.get("role_name") for role in roles]
-    access_token = create_access_token(
-        {"sub": str(user_id), "roles": roles, "type": "access"}
-    )
+    ))[0]
+    roles = user_roles["roles_names"]
+    #log.debug("roles: %s", roles)
     refresh_token = create_refresh_token(
         {"sub": str(user_id), "roles": roles, "type": "refresh"}
     )
-    access_key, refresh_key = f"{user_id}:access_token", f"{user_id}:refresh_token"
-    await redis_client.set(
-        access_key,
-        value=access_token,
-        ttl=access_time,
-    )
-    await redis_client.set(
+    refresh_key = f"{user_id}:refresh_token"
+    await redis_service.set(
         refresh_key,
         value=refresh_token,
         ttl=refresh_time,
     )
-    return access_token
+    return create_access_token(
+        {"sub": str(user_id), "roles": roles, "type": "access"}
+    )
 
 def verify(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
@@ -112,19 +98,18 @@ async def get_user_for_token(manager, user_id: int = None, username: str | None 
 
 
 async def get_access_token_with_password_verify(
-        redis_client,
+        redis_service,
         manager,
         password: str,
-        user_id: int | None = None,
-        username: str | None = None,
+        user_id: int
 
 ):
-    user = await get_user_for_token(manager, user_id, username)
+    user = await get_user_for_token(manager, user_id)
     if verify(password, user.get("password")):
         log.debug("password verify")
-        return await create_dict_tokens_and_save(
-            user.get("id"),
-            redis_client,
+        return await create_tokens_and_save_refresh(
+            user_id,
+            redis_service,
             manager
         )
     else:
@@ -133,14 +118,13 @@ async def get_access_token_with_password_verify(
 
 async def get_access_token_from_refresh(
     manager,
-    redis_client,
-    refresh_token: str
+    redis_service,
+    user_id: int
 ):
-    refresh_token_payload = check_refresh_token(refresh_token)
-    user_id = refresh_token_payload["sub"]
-    access_token = await create_dict_tokens_and_save(
-        user_id,
-        redis_client,
-        manager
-    )
-    return access_token
+    log.debug("get from refresh token")
+    await get_user_for_token(manager, user_id)
+    refresh_key = f"{user_id}:refresh_key"
+    refresh_token = await redis_service.get(refresh_key)
+    if refresh_token:
+        check_refresh_token(refresh_token, user_id)
+        return await create_tokens_and_save_refresh(user_id, redis_service, manager)

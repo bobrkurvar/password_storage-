@@ -19,10 +19,10 @@ def get_salt() -> str:
     return base64.b64encode(os.urandom(16)).decode("utf-8")
 
 
-async def user_sign_up(manager, user_id: int, password: str, username: str):
+async def user_registration(manager, user_id: int, password: str, username: str, uow_class=UnitOfWork):
     # регистрация пользователя
     salt = get_salt()
-    async with UnitOfWork(manager._session_factory) as uow:
+    async with uow_class(manager._session_factory) as uow:
         user = await manager.create(
             User,
             id=user_id,

@@ -35,9 +35,9 @@ class MyExternalApiForBot:
         self._url = url
         self._session = None
 
-    async def token(self, user_id: int, password: str | None = None):
+    async def auth(self, user_id: int, password: str | None = None):
         async with self._session.post(
-            self._url + "user/token", json={"user_id": user_id, "password": password}
+            self._url + "auth", json={"user_id": user_id, "password": password}
         ) as resp:
             resp.raise_for_status()
             return await resp.json()

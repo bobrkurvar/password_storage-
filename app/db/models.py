@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, inspect
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import BigInteger, String
@@ -25,11 +25,13 @@ class User(Base):
         return text
 
     def model_dump(self):
+        insp = inspect(self)
         return {
             "id": self.id,
             "username": self.username,
             "salt": self.salt,
             "password": self.password,
+            "roles_names": None if "roles" in insp.unloaded else [role.model_dump()["name"] for role in self.roles]
         }
 
 
