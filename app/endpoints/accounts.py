@@ -1,12 +1,12 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 
 from app.adapters.auth import get_user_from_token, getUserFromTokenDep
 from app.adapters.crud import Crud, get_db_manager
-from app.domain import Account
-from app.endpoints.schemas.account import AccountInput, AccountOutput
+from app.domain import Account, NotFoundError
+from app.endpoints.schemas.account import AccountInputFromUser, AccountOutput
 from app.endpoints.schemas.errors import ErrorResponse
 from app.services.account import create_account
 
@@ -63,14 +63,12 @@ async def user_accounts_list(user: getUserFromTokenDep, manager: dbManagerDep):
     },
 )
 async def create_account_with_params(
-    user: getUserFromTokenDep, account: AccountInput, manager: dbManagerDep
+    user: getUserFromTokenDep, account: AccountInputFromUser, manager: dbManagerDep
 ):
     created_account, params = await create_account(
         manager, **account.model_dump(), user_id=user["user_id"]
     )
-    log.debug(
-        "returning acc: %s, %s",
-        created_account.get("id"),
-        created_account.get("user_id"),
-    )
+    if created_account is None:
+        raise HTTPException(status_code=403, detail="Invalid credentials")
+
     return created_account

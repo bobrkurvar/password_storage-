@@ -3,8 +3,9 @@ from app.domain.user import User
 from datetime import datetime, timedelta, timezone
 from core import conf
 import jwt
-import bcrypt
+#import bcrypt
 from app.domain.exceptions import NotFoundError, InvalidRefreshTokenError, RefreshTokenExpireError, CredentialsValidateError
+from .security import verify
 
 log = logging.getLogger(__name__)
 secret_key = conf.secret_key
@@ -77,9 +78,9 @@ async def create_tokens_and_save_refresh(
         {"sub": str(user_id), "roles": roles, "type": "access"}
     )
 
-
-def verify(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(password.encode(), hashed.encode())
+#
+# def verify(password: str, hashed: str) -> bool:
+#     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 
 async def get_user_for_token(manager, user_id: int = None, username: str | None = None):

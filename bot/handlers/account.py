@@ -110,6 +110,93 @@ async def process_params_list(
     await state.set_state(InputAccount.input)
 
 
+# @router.message(StateFilter(InputAccount.input))
+# async def process_select_account_params(
+#     message: Message,
+#     state: FSMContext,
+#     ext_api_manager: MyExternalApiForBot,
+#     redis_service: RedisService,
+# ):
+#     data, cur_state = await state.get_data(), await state.get_state()
+#     msg, params, i = data["msg"], data["params"], data["index"]
+#     buttons = ("MENU",)
+#     text = phrases.start
+#     status, proceed = None, True
+#
+#     if params:
+#         current_param = params[i]
+#         content = message.text
+#         secret = data.pop("secret", False)
+#         text = f"Введите {current_param}"
+#         buttons = ("MENU", "SECRET")
+#
+#         if secret:
+#             _, derive_key, status = await ensure_auth(
+#                 ext_api_manager,
+#                 redis_service,
+#                 message.from_user.id,
+#                 need_crypto=True,
+#             )
+#             text, buttons = match_status_and_interface(status, text, buttons)
+#             if status == AuthStage.OK:
+#                 content = encrypt_account_content(content, derive_key)
+#             else:
+#                 await set_previous_data(
+#                     redis_service,
+#                     cur_state,
+#                     message.from_user.id,
+#                     f"Введите {current_param}",
+#                     ("MENU", "SECRET"),
+#                 )
+#                 proceed = False
+#
+#         if proceed:
+#             data["collected"].append(
+#                 {
+#                     "name": current_param,
+#                     "content": content,
+#                     "secret": secret,
+#                 }
+#             )
+#             i += 1
+#             data["index"] = i
+#
+#     if i == len(params):
+#         data.pop("params")
+#         data.pop("index")
+#         account_password, account_name = data.pop("account_password"), data.pop("name")
+#         token, derive_key, status = await ensure_auth(
+#             ext_api_manager,
+#             redis_service,
+#             message.from_user.id,
+#             need_crypto=True,
+#         )
+#         text, buttons = match_status_and_interface(status, phrases.account_created.format(account_name))
+#         if status == AuthStage.OK:
+#             password = encrypt_account_content(account_password, derive_key)
+#             await ext_api_manager.create_account(
+#                 access_token=token,
+#                 password=password,
+#                 account_name=account_name,
+#                 params=data["collected"],
+#             )
+#         else:
+#             await set_previous_data(
+#                 redis_service,
+#                 cur_state,
+#                 message.from_user.id,
+#                 phrases.account_created.format(account_name),
+#                 ("MENU",),
+#             )
+#         data.pop("collected")
+#     await delete_msg_if_exists(msg, message)
+#     kb = get_inline_kb(*buttons)
+#     msg = (await message.answer(text=text, reply_markup=kb)).message_id
+#     data.update(msg=msg)
+#     new_state = get_state_from_status(status, cur_state)
+#     await state.set_data(data)
+#     await state.set_state(new_state)
+
 @router.message(StateFilter(InputAccount.input))
 async def process_select_account_params(
     message: Message,
@@ -130,53 +217,44 @@ async def process_select_account_params(
         text = f"Введите {current_param}"
         buttons = ("MENU", "SECRET")
 
-        if secret:
-            _, derive_key, status = await ensure_auth(
-                ext_api_manager,
-                redis_service,
-                message.from_user.id,
-                need_crypto=True,
-            )
-            text, buttons = match_status_and_interface(status, text, buttons)
-            if status == AuthStage.OK:
-                content = encrypt_account_content(content, derive_key)
-            else:
-                await set_previous_data(
-                    redis_service,
-                    cur_state,
-                    message.from_user.id,
-                    f"Введите {current_param}",
-                    ("MENU", "SECRET"),
-                )
-                proceed = False
+        # if status == AuthStage.OK:
+        #     content = encrypt_account_content(content, derive_key)
+        # else:
+        #     await set_previous_data(
+        #         redis_service,
+        #         cur_state,
+        #         message.from_user.id,
+        #         f"Введите {current_param}",
+        #         ("MENU", "SECRET"),
+        #     )
+        #     proceed = False
 
-        if proceed:
-            data["collected"].append(
-                {
-                    "name": current_param,
-                    "content": content,
-                    "secret": secret,
-                }
-            )
-            i += 1
-            data["index"] = i
+        #if proceed:
+        data["collected"].append(
+            {
+                "name": current_param,
+                "content": content,
+                "secret": secret,
+            }
+        )
+        i += 1
+        data["index"] = i
 
     if i == len(params):
         data.pop("params")
         data.pop("index")
         account_password, account_name = data.pop("account_password"), data.pop("name")
-        token, derive_key, status = await ensure_auth(
+        token, status = await ensure_auth(
             ext_api_manager,
             redis_service,
             message.from_user.id,
-            need_crypto=True,
         )
         text, buttons = match_status_and_interface(status, phrases.account_created.format(account_name))
         if status == AuthStage.OK:
-            password = encrypt_account_content(account_password, derive_key)
+            #password = encrypt_account_content(account_password, derive_key)
             await ext_api_manager.create_account(
                 access_token=token,
-                password=password,
+                password=account_password,
                 account_name=account_name,
                 params=data["collected"],
             )

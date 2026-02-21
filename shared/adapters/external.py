@@ -92,7 +92,7 @@ class MyExternalApiForBot:
             return await resp.json()
 
     async def create_account(
-        self, access_token: str, account_name: str, password: str, params: list
+        self, access_token: str, account_name: str, password: str, params: list, user_password: str | None = None
     ):
         try:
             headers = {"Authorization": f"Bearer {access_token}"}
@@ -100,14 +100,15 @@ class MyExternalApiForBot:
             headers = {}
         async with self._session.post(
             self._url + "account",
-            json={"name": account_name, "params": params, "password": password},
+            json={"name": account_name, "params": params, "password": password, "user_password": user_password},
             headers=headers,
         ) as resp:
             try:
                 resp.raise_for_status()
                 return await resp.json()
             except ClientResponseError:
-                return None
+                if resp.status_code == "403":
+                    pass
 
     async def create(self, prefix: str, **data):
         try:

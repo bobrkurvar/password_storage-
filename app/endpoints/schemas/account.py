@@ -1,7 +1,8 @@
 from pydantic import BaseModel
 
 
-class AccountInput(BaseModel):
+class AccountInputFromUser(BaseModel):
+    user_password: str | None = None
     password: str
     name: str
     params: list
