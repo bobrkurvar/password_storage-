@@ -130,6 +130,7 @@ class FakeCRUD:
     def __init__(self, storage: FakeStorage):
         self.storage = storage
 
+
     async def create(self, model, session=None, **columns) -> tuple[dict, ...] | dict:
         return self.storage.add(model, **columns)
 

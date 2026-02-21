@@ -1,6 +1,6 @@
 from datetime import timedelta
 from app.services.tokens import create_access_token, create_refresh_token
-from .fakes import FakeStorage
+from .fakes import FakeCRUD
 import jwt
 from core import conf
 
@@ -15,8 +15,8 @@ def get_tokens(
     refresh_token = create_refresh_token(refresh_data, time_life)
     return access_token, refresh_token
 
-def add_to_table(storage: FakeStorage, table, row: dict):
-    storage.add(table, **row)
+def add_to_table(crud: FakeCRUD, table, row: dict):
+    crud.storage.add(table, **row)
 
 def decode_token(token: str):
     return jwt.decode(token, conf.secret_key, [conf.algorithm])

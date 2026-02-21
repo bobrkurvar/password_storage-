@@ -64,7 +64,6 @@ async def create_tokens_and_save_refresh(
         ],
     ))[0]
     roles = user_roles["roles_names"]
-    #log.debug("roles: %s", roles)
     refresh_token = create_refresh_token(
         {"sub": str(user_id), "roles": roles, "type": "refresh"}
     )
@@ -77,6 +76,7 @@ async def create_tokens_and_save_refresh(
     return create_access_token(
         {"sub": str(user_id), "roles": roles, "type": "access"}
     )
+
 
 def verify(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
