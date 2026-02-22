@@ -15,9 +15,9 @@ def encrypt_account_content(plain_text: str, derive_key: bytes) -> str:
     return f.encrypt(plain_text.encode()).decode("utf-8")
 
 
-def decrypt_account_content(token: bytes, derive_key: bytes) -> str:
+def decrypt_account_content(content: bytes, derive_key: bytes) -> str:
     f = Fernet(derive_key)
-    return f.decrypt(token).decode()
+    return f.decrypt(content).decode()
 
 
 def derive_master_key(user_password: str, salt: str) -> bytes:

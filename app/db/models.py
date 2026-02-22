@@ -34,7 +34,7 @@ class User(Base):
             "roles_names": (
                 None
                 if "roles" in insp.unloaded
-                else [role.model_dump()["name"] for role in self.roles]
+                else [role.model_dump()["role_name"] for role in self.roles]
             ),
         }
 
@@ -60,11 +60,17 @@ class Account(Base):
         return text
 
     def model_dump(self):
+        insp = inspect(self)
         return {
             "id": self.id,
             "user_id": self.user_id,
             "name": self.name,
             "password": self.password,
+            "params": (
+                None
+                if "params" in insp.unloaded
+                else tuple(param.model_dump() for param in self.params)
+            ),
         }
 
 

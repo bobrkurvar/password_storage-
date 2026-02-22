@@ -60,7 +60,7 @@ async def test_match_interface_need_unlock_without_password(
 async def test_match_interface_need_unlock_with_wrong_password(
     get_fake_http_client, fake_redis
 ):
-    http_client = get_fake_http_client(password=True)
+    http_client = get_fake_http_client()
     with pytest.raises(AuthError):
         _, status = await action_with_unlock_storage(
             http_client.create_account, user_id=1

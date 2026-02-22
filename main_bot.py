@@ -24,7 +24,7 @@ async def init_all():
     # rmq_client = RabbitMQClient()
     # await rmq_client.connect("logs_queue")
     rmq_client = None
-    await setup_logging("bot", rmq_client)
+    setup_logging("bot", rmq_client)
     redis_client = get_redis_client()
     redis_conn = await redis_client.init_redis()
     redis_service = get_redis_service(prefix="front", redis_conn=redis_conn)

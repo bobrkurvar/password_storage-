@@ -17,7 +17,7 @@ def fake_redis():
 
 @pytest.fixture
 def get_fake_http_client():
-    def fake_http_client(registration=True, password=False):
-        return HttpClient(registration, password)
+    def fake_http_client(registration=True):
+        return HttpClient(registration)
 
     return fake_http_client

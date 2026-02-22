@@ -1,6 +1,7 @@
 import logging
 
 from aiogram import Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
@@ -9,9 +10,11 @@ from bot.dialog.states import InputUser
 from bot.http_client import MyExternalApiForBot
 from bot.services.auth import (AuthStage, ensure_auth,
                                match_status_and_interface)
+from bot.services.messages import delete_msg_if_exists
 from bot.texts import phrases
 from bot.utils.flow import get_state_from_status
 from bot.utils.keyboards import get_inline_kb
+from bot.services.exceptions import AuthError
 from shared.adapters.redis import RedisService
 
 router = Router()
@@ -38,7 +41,7 @@ async def process_input_password(
         )
     new_state = None
     buttons = (
-        ("ACCOUNTS", "CREATE ACCOUNT", "DELETE ACCOUNT")
+        ("ACCOUNTS", "CREATE ACCOUNT")
         if previous_buttons is None
         else previous_buttons
     )
@@ -49,23 +52,30 @@ async def process_input_password(
             message.from_user.id, message.from_user.username, message.text
         )
     else:
-        _, _, status = await ensure_auth(
-            ext_api_manager,
-            redis_service,
-            message.from_user.id,
-            password=message.text,
-            need_crypto=True,
-        )
-        text, buttons = match_status_and_interface(status, text, buttons)
-        if status == AuthStage.OK:
+        try:
+            token, status = await ensure_auth(
+                ext_api_manager,
+                redis_service,
+                message.from_user.id,
+                password=message.text,
+            )
+            text, buttons = match_status_and_interface(ok_text=text, ok_buttons=buttons)
+            await ext_api_manager.master_key(access_token=token, password=message.text)
             await redis_service.pop(f"{message.from_user.id}:previous_data")
+        except AuthError as exc:
+            status = exc.status
+            text, buttons = match_status_and_interface(status, text, buttons)
         new_state = get_state_from_status(status, previous_state)
 
     kb = get_inline_kb(*buttons, user_id=message.from_user.id)
-    msg = (
-        await message.bot.edit_message_text(
-            chat_id=message.chat.id, message_id=msg, text=text, reply_markup=kb
-        )
-    ).message_id
+    #await delete_msg_if_exists(msg, message)
+    try:
+        msg = (
+            await message.bot.edit_message_text(
+                chat_id=message.chat.id, message_id=msg, text=text, reply_markup=kb
+            )
+        ).message_id
+    except TelegramBadRequest:
+        pass
     await state.update_data(msg=msg)
     await state.set_state(new_state)

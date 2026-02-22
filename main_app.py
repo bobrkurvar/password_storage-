@@ -9,7 +9,7 @@ from fastapi_limiter.depends import RateLimiter
 from app.adapters.crud import get_db_manager
 from app.endpoints import main_router
 from core.logger import setup_logging
-from shared.adapters.queue_client import RabbitMQClient
+#from shared.adapters.queue_client import RabbitMQClient
 from shared.adapters.redis import get_redis_client, get_redis_service
 
 dep = []
@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
     # rmq_ready = await rmq_client.connect("logs_queue")
     rmq_client = None
     # await setup_logging("app", rmq_client) if rmq_ready else setup_logging("app")
-    await setup_logging("app", rmq_client)
+    setup_logging("app", rmq_client)
     manager = get_db_manager()
     manager.connect()
     redis_client = get_redis_client()

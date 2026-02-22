@@ -3,7 +3,7 @@ import logging
 from app.domain.account import Account, Param
 from app.services.UoW import UnitOfWork
 
-from .security import encrypt_account_content
+from .security import encrypt_account_content, decrypt_account_content
 from .users import get_user_derive_key
 
 log = logging.getLogger(__name__)
@@ -44,5 +44,21 @@ async def create_account(
             return account, params
 
 
-async def read_accounts(manager, redis_service):
-    pass
+async def read_accounts(manager, redis_service, user_id: int, **filters):
+    master_key = await get_user_derive_key(
+        redis_service, manager, user_id
+    )
+    if master_key:
+        accounts = await manager.read(
+            Account,
+            user_id=user_id,
+            to_join = ["params"],
+            **filters
+        )
+        for account in accounts:
+            account["password"] = decrypt_account_content(account["password"], master_key)
+            for param in account["params"]:
+                log.debug("param: %s", param)
+                if param["secret"]:
+                    param["content"] = decrypt_account_content(param["content"], master_key)
+        return accounts

@@ -18,10 +18,11 @@ async def ensure_auth(
         access_key = f"{user_id}:access_token"
         token = await redis_service.get(access_key)
         if token is None:
-            token = await ext_api_manager.auth(user_id, password, ttl=900)
+            token = await ext_api_manager.auth(user_id, password)
             await redis_service.set(
                 access_key,
                 token,
+                ttl = 900
             )
         log.debug("token: %s", token)
         return token, AuthStage.OK
@@ -36,15 +37,44 @@ async def ensure_auth(
             )
 
 
-async def action_with_unlock_storage(action, *args, **kwargs):
-    try:
-        await action(*args, **kwargs)
-    except UnlockStorageError as exc:
-        raise (
-            AuthError(AuthStage.WRONG_PASSWORD)
-            if exc.password
-            else AuthError(AuthStage.NEED_UNLOCK)
-        )
+async def action_with_unlock_storage(
+        action,
+        access_token: str | None = None,
+        http_client = None,
+        password: str | None = None,
+):
+    if password is not None and http_client is not None:
+        try:
+            await http_client.master_key(access_token=access_token, password=password)
+            log.debug("TOKEN IN action_with_unlock_storage: %s", access_token)
+            return await action()
+        except UnauthorizedError:
+            raise AuthError(AuthStage.WRONG_PASSWORD)
+    else:
+        try:
+            return await action()
+        except UnlockStorageError:
+            raise AuthError(AuthStage.NEED_UNLOCK)
+
+
+# async def action_with_unlock_storage(
+#         action,
+#         *args,
+#         access_token: str | None = None,
+#         http_client = None,
+#         password: str | None = None,
+#         **kwargs
+# ):
+#     try:
+#         await action(*args, **kwargs)
+#     except UnlockStorageError:
+#         if password is not None and http_client is not None:
+#             try:
+#                 await http_client.master_key(access_token=access_token, password=password)
+#                 await action(*args, **kwargs)
+#             except UnauthorizedError:
+#                 raise AuthError(AuthStage.WRONG_PASSWORD)
+#         raise AuthError(AuthStage.NEED_UNLOCK)
 
 
 def match_status_and_interface(

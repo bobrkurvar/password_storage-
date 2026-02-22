@@ -40,9 +40,9 @@ class MyExternalApiForBot:
         async with self._session.post(
             self._url + "auth", json={"user_id": user_id, "password": password}
         ) as resp:
-            if resp.status_code == "401":
+            if resp.status == 401:
                 raise UnauthorizedError
-            if resp.status_code == "409":
+            if resp.status == 409:
                 raise UnauthorizedError(True)
             resp.raise_for_status()
             return await resp.json()
@@ -61,9 +61,7 @@ class MyExternalApiForBot:
     async def read_user(
         self, user_id: int | None = None, access_token: str | None = None
     ):
-        headers = {}
-        if access_token is not None:
-            headers = {"Authorization": f"Bearer {access_token}"}
+        headers = {"Authorization": f"Bearer {access_token}"}
         path = (
             self._url + f"user/{user_id}" if user_id is not None else self._url + "user"
         )
@@ -74,25 +72,23 @@ class MyExternalApiForBot:
             except ClientResponseError:
                 return None
 
-    async def read_account(self, user_id: int, access_token: str):
-        try:
-            headers = {"Authorization": f"Bearer {access_token}"}
-        except KeyError:
-            headers = {}
-        async with self._session.read(
-            self._url + f"user/{user_id}/accounts", headers=headers
+
+    async def read_own_account(self, access_token: str):
+        headers = {"Authorization": f"Bearer {access_token}"}
+        async with self._session.get(
+            self._url + "accounts", headers=headers
         ) as resp:
             resp.raise_for_status()
             return await resp.json()
 
-    async def read_params(self, account_id: int, access_token: str):
-        try:
-            headers = {"Authorization": f"Bearer {access_token}"}
-        except KeyError:
-            headers = {}
-        async with self._session.read(
-            self._url + f"account/{account_id}/params", headers=headers
+
+    async def master_key(self, access_token: str, password: str):
+        headers = {"Authorization": f"Bearer {access_token}"}
+        async with self._session.post(
+            self._url + "auth/master-key", headers=headers, data=password
         ) as resp:
+            if resp.status == 403:
+                raise UnauthorizedError
             resp.raise_for_status()
             return await resp.json()
 
@@ -102,20 +98,18 @@ class MyExternalApiForBot:
         account_name: str,
         password: str,
         params: list,
-        user_password: str | None = None,
     ):
         headers = {"Authorization": f"Bearer {access_token}"}
         async with self._session.post(
-            self._url + "account",
+            self._url + "accounts",
             json={
                 "name": account_name,
                 "params": params,
                 "password": password,
-                "user_password": user_password,
             },
             headers=headers,
         ) as resp:
-            if resp.status_code == "403":
+            if resp.status == 403:
                 raise UnlockStorageError
             resp.raise_for_status()
             return await resp.json()

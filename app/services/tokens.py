@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 
-# import bcrypt
 from app.domain.exceptions import (CredentialsValidateError,
                                    InvalidRefreshTokenError, NotFoundError,
                                    RefreshTokenExpireError)
@@ -24,8 +23,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
         if expires_delta
         else datetime.now(timezone.utc) + timedelta(minutes=15)
     )
-    to_encode.update({"exp": expire})
-    to_encode.update({"type": "access"})
+    to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, secret_key, algorithm)
 
 
@@ -36,8 +34,7 @@ def create_refresh_token(data: dict, expires_delta: timedelta = None) -> str:
         if expires_delta
         else datetime.now(timezone.utc) + timedelta(days=7)
     )
-    to_encode.update({"exp": expire})
-    to_encode.update({"type": "refresh"})
+    to_encode.update({"exp": expire, "type":"refresh"})
     # log.debug("refresh to_encode: %s", to_encode)
     return jwt.encode(to_encode, secret_key, algorithm=algorithm)
 
@@ -120,3 +117,6 @@ async def get_access_token_from_refresh(manager, redis_service, user_id: int):
     if refresh_token:
         check_refresh_token(refresh_token, user_id)
         return await create_tokens_and_save_refresh(user_id, redis_service, manager)
+    else:
+        log.debug("refresh token not exists")
+        raise RefreshTokenExpireError

@@ -12,17 +12,18 @@ AUTHENTICATION = {
     "register": "<b>Для регистрации введите пароль</b>",
     "already_registered": "<b>Пользователь уже зарегистрирован</b>",
     "user_not_exists": "<b>Пользователь не зарегистрирован</b>",
+    "need unlock": "Введите master password для разблокировки хранилища",
+    "wrong password": "Неверный пароль, введите заново",
 }
 
 ACCOUNT = {
     "account name": "<b>Введите имя аккаунта</b>",
     "account password": "<b>Введите пароль от аккаунта</b>",
     "account created": "<b>Аккаунт {} создан</b>",
-    "params list": "<b>{}: {};\t </b>",
+    "account_param": "<b>{}: {}\n </b>",
     "account params": "<b>Введите через пробел параметры для аккаунта в виде:\n"
     "параметр_1 параметр_2 ... параметр_n\nили нажмите menu если дополнительные параметры не нужны</b>",
-    "need unlock": "Введите master password для разблокировки хранилища",
-    "wrong password": "Неверный пароль, введите заново",
+    "empty accounts list": "список аккаунтов пуст"
 }
 
 
@@ -37,9 +38,10 @@ class Phrases(BaseModel):
     account_name: str = ACCOUNT["account name"]
     account_password: str = ACCOUNT["account password"]
     account_created: str = ACCOUNT["account created"]
-    params_list: str = ACCOUNT["params list"]
-    need_unlock: str = ACCOUNT["need unlock"]
-    wrong_password: str = ACCOUNT["wrong password"]
+    account_param: str = ACCOUNT["account_param"]
+    need_unlock: str = AUTHENTICATION["need unlock"]
+    wrong_password: str = AUTHENTICATION["wrong password"]
+    empty_accounts_list: str = ACCOUNT["empty accounts list"]
 
 
 phrases: Phrases = Phrases()

@@ -1,5 +1,5 @@
 import logging
-
+import base64
 from app.domain import CredentialsValidateError, User, UserRole
 from app.services.UoW import UnitOfWork
 from .security import derive_master_key, get_password_hash, get_salt, verify
@@ -35,10 +35,13 @@ async def get_user_derive_key(
     master_key_redis_key = f"{user_id}:master_key"
     key = await redis_service.get(master_key_redis_key)
     if key is None and password:
-        user = manager.read(User, id=user_id)
+        user = (await manager.read(User, id=user_id))[0]
         if verify(password, user.get("password")):
             key = derive_master_key(password, user.get("salt"))
-            await redis_service(master_key_redis_key, key, ttl=900)
+            encoded_key = key.decode("utf-8") # bytes → str
+            await redis_service.set(master_key_redis_key, encoded_key, ttl=900)
         else:
             raise CredentialsValidateError
+    if isinstance(key, str):
+        key = key.encode("utf-8")
     return key

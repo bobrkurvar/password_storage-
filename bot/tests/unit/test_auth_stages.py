@@ -49,9 +49,9 @@ async def test_ensure_auth_need_login_with_wrong_password(
 async def test_ensure_auth_need_unlock_with_wrong_password(
     get_fake_http_client, fake_redis
 ):
-    http_client = get_fake_http_client(False, True)
+    http_client = get_fake_http_client(False)
     with pytest.raises(AuthError) as exc:
-        await action_with_unlock_storage(http_client.create_account, user_id=1)
+        await action_with_unlock_storage(http_client.create_account, user_id=1, password="", http_client=http_client)
     exc_info = exc.value
     assert exc_info.status == AuthStage.WRONG_PASSWORD
 
