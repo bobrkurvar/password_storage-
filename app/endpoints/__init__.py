@@ -2,7 +2,7 @@ from fastapi import APIRouter, status
 
 from app.endpoints.schemas.errors import ErrorResponse
 
-from . import accounts, users, accounts_manage, users_manage
+from . import accounts, accounts_manage, users, users_manage
 
 main_router = APIRouter(
     responses={

@@ -1,7 +1,8 @@
 import logging
 from copy import deepcopy
 from typing import Any
-from app.domain import Role, NotFoundError
+
+from app.domain import NotFoundError, Role
 
 log = logging.getLogger(__name__)
 
@@ -10,7 +11,7 @@ def join_users_with_roles(new_table, other_table):
     new_table.columns += ["roles"]
     for row in new_table.rows:
         roles_names = [row["name"] for row in other_table.rows]
-        row.update(roles_names = roles_names)
+        row.update(roles_names=roles_names)
 
 
 class Table:
@@ -44,9 +45,7 @@ class FakeStorage:
 
     def __init__(self):
         self.tables: dict[Any, Table] = {}
-        self.to_join = {
-            "roles": Role
-        }
+        self.to_join = {"roles": Role}
 
     def register_tables(self, models: list[Table]):
         for model in models:
@@ -129,7 +128,6 @@ class FakeCRUD:
 
     def __init__(self, storage: FakeStorage):
         self.storage = storage
-
 
     async def create(self, model, session=None, **columns) -> tuple[dict, ...] | dict:
         return self.storage.add(model, **columns)

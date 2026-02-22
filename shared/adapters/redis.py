@@ -97,7 +97,6 @@ class RedisService:
 redis_service: RedisService | None = None
 
 
-
 def get_redis_service(redis_conn=None, prefix: str = ""):
     global redis_service
     if redis_service is None:

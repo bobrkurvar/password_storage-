@@ -27,6 +27,7 @@ import sys
 #         if pocket in access:
 #             return True
 
+
 class IgnoreFilter(logging.Filter):
     def filter(self, record):
         ignore = {"aiormq", "aio_pika", "asyncio"}
@@ -36,6 +37,7 @@ class IgnoreFilter(logging.Filter):
         if pocket in ignore:
             return False
         return True
+
 
 # class RabbitMQHandler(logging.Handler):
 #     def __init__(self, queue_client, queue_name: str, service_name: str, env: str = 'dev'):
@@ -63,7 +65,7 @@ class IgnoreFilter(logging.Filter):
 #             self.handleError(record)
 
 
-def setup_logging(service_name: str = "", queue_client = None):
+def setup_logging(service_name: str = "", queue_client=None):
     logger = logging.getLogger()
     # if queue_client:
     #     rabbit_handler = RabbitMQHandler(queue_client, "logs_queue", service_name)
@@ -71,7 +73,6 @@ def setup_logging(service_name: str = "", queue_client = None):
     #     if not any(isinstance(h, RabbitMQHandler) for h in logger.handlers):
     #         rabbit_handler.addFilter(MyServicesFilter())
     #         logger.addHandler(rabbit_handler)
-
 
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
@@ -83,7 +84,7 @@ def setup_logging(service_name: str = "", queue_client = None):
     console_handler.setFormatter(formatter)
 
     if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
-        #console_handler.addFilter(IgnoreFilter())
+        # console_handler.addFilter(IgnoreFilter())
         logger.addHandler(console_handler)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
 

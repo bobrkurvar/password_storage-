@@ -4,7 +4,6 @@ from typing import Any, Awaitable, Callable
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
 
-
 log = logging.getLogger(__name__)
 
 

@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, status
 from app.adapters.auth import make_role_checker
 from app.adapters.crud import Crud, get_db_manager
 from app.domain import Role, User, UserRole
+from app.endpoints.schemas.errors import ErrorResponse
 from app.endpoints.schemas.user import (UserInput, UserOutput, UserRolesInput,
                                         UserRolesOutput)
-from app.endpoints.schemas.errors import ErrorResponse
 
 router = APIRouter(
     prefix="/user",

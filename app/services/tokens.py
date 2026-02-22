@@ -1,10 +1,15 @@
 import logging
-from app.domain.user import User
 from datetime import datetime, timedelta, timezone
-from core import conf
+
 import jwt
-#import bcrypt
-from app.domain.exceptions import NotFoundError, InvalidRefreshTokenError, RefreshTokenExpireError, CredentialsValidateError
+
+# import bcrypt
+from app.domain.exceptions import (CredentialsValidateError,
+                                   InvalidRefreshTokenError, NotFoundError,
+                                   RefreshTokenExpireError)
+from app.domain.user import User
+from core import conf
+
 from .security import verify
 
 log = logging.getLogger(__name__)
@@ -33,7 +38,7 @@ def create_refresh_token(data: dict, expires_delta: timedelta = None) -> str:
     )
     to_encode.update({"exp": expire})
     to_encode.update({"type": "refresh"})
-    log.debug("refresh to_encode: %s", to_encode)
+    # log.debug("refresh to_encode: %s", to_encode)
     return jwt.encode(to_encode, secret_key, algorithm=algorithm)
 
 
@@ -53,17 +58,17 @@ def check_refresh_token(refresh_token: str, my_id: int):
         raise InvalidRefreshTokenError
 
 
-async def create_tokens_and_save_refresh(
-    user_id, redis_service, manager
-):
+async def create_tokens_and_save_refresh(user_id, redis_service, manager):
     refresh_time = 86400 * 7
-    user_roles = (await manager.read(
-        User,
-        id=user_id,
-        to_join=[
-            "roles",
-        ],
-    ))[0]
+    user_roles = (
+        await manager.read(
+            User,
+            id=user_id,
+            to_join=[
+                "roles",
+            ],
+        )
+    )[0]
     roles = user_roles["roles_names"]
     refresh_token = create_refresh_token(
         {"sub": str(user_id), "roles": roles, "type": "refresh"}
@@ -74,9 +79,8 @@ async def create_tokens_and_save_refresh(
         value=refresh_token,
         ttl=refresh_time,
     )
-    return create_access_token(
-        {"sub": str(user_id), "roles": roles, "type": "access"}
-    )
+    return create_access_token({"sub": str(user_id), "roles": roles, "type": "access"})
+
 
 #
 # def verify(password: str, hashed: str) -> bool:
@@ -97,31 +101,18 @@ async def get_user_for_token(manager, user_id: int = None, username: str | None 
         raise NotFoundError(User, ident, ident_val)
 
 
-
 async def get_access_token_with_password_verify(
-        redis_service,
-        manager,
-        password: str,
-        user_id: int
-
+    redis_service, manager, password: str, user_id: int
 ):
     user = await get_user_for_token(manager, user_id)
     if verify(password, user.get("password")):
         log.debug("password verify")
-        return await create_tokens_and_save_refresh(
-            user_id,
-            redis_service,
-            manager
-        )
+        return await create_tokens_and_save_refresh(user_id, redis_service, manager)
     else:
         raise CredentialsValidateError
 
 
-async def get_access_token_from_refresh(
-    manager,
-    redis_service,
-    user_id: int
-):
+async def get_access_token_from_refresh(manager, redis_service, user_id: int):
     log.debug("get from refresh token")
     await get_user_for_token(manager, user_id)
     refresh_key = f"{user_id}:refresh_key"

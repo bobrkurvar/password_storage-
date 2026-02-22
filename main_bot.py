@@ -9,11 +9,11 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
 
 from bot.handlers import main_router
+from bot.http_client import ext_api_manager
 from core import conf
 from core.logger import setup_logging
-from shared.adapters.external import ext_api_manager
-from shared.adapters.redis import get_redis_client, get_redis_service
 from shared.adapters.queue_client import RabbitMQClient
+from shared.adapters.redis import get_redis_client, get_redis_service
 
 bot = Bot(conf.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 log = logging.getLogger(__name__)
@@ -21,8 +21,8 @@ log = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def init_all():
-    #rmq_client = RabbitMQClient()
-    #await rmq_client.connect("logs_queue")
+    # rmq_client = RabbitMQClient()
+    # await rmq_client.connect("logs_queue")
     rmq_client = None
     await setup_logging("bot", rmq_client)
     redis_client = get_redis_client()
@@ -43,7 +43,7 @@ async def init_all():
     log.debug("НАЧАЛО РАБОТА БОТА")
 
     yield
-    #await rmq_client.close()
+    # await rmq_client.close()
     if redis_conn:
         await redis_client.close_redis()
     try:

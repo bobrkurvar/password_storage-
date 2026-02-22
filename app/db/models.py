@@ -31,7 +31,11 @@ class User(Base):
             "username": self.username,
             "salt": self.salt,
             "password": self.password,
-            "roles_names": None if "roles" in insp.unloaded else [role.model_dump()["name"] for role in self.roles]
+            "roles_names": (
+                None
+                if "roles" in insp.unloaded
+                else [role.model_dump()["name"] for role in self.roles]
+            ),
         }
 
 

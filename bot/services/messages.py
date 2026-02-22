@@ -6,14 +6,3 @@ async def delete_msg_if_exists(message_id, message, exc=Exception):
             )
         except exc:
             pass
-
-
-async def set_previous_data(
-    redis_service, state, user_id, text: str | None = None, buttons=None
-):
-    previous_data = {"state": state.state}
-    if text is not None:
-        previous_data.update(text=text)
-    if buttons is not None:
-        previous_data.update(buttons=buttons)
-    await redis_service.set(f"{user_id}:previous_data", previous_data)

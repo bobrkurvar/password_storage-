@@ -1,6 +1,9 @@
-import aio_pika
-from core import conf
 import json
+
+import aio_pika
+
+from core import conf
+
 
 class RabbitMQClient:
     def __init__(self):
@@ -27,9 +30,9 @@ class RabbitMQClient:
         await self.channel.default_exchange.publish(
             aio_pika.Message(
                 body=json.dumps(data).encode(),
-                delivery_mode=aio_pika.DeliveryMode.PERSISTENT
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
             ),
-            routing_key=queue_name
+            routing_key=queue_name,
         )
 
     async def close(self):

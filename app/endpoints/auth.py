@@ -5,8 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.adapters.crud import Crud, get_db_manager
 from app.domain.exceptions import NotFoundError, UnauthorizedError
-from app.endpoints.schemas.user import UserForToken, UserForRegistration
-from app.services.tokens import get_access_token_from_refresh, get_access_token_with_password_verify
+from app.endpoints.schemas.user import UserForRegistration, UserForToken
+from app.services.tokens import (get_access_token_from_refresh,
+                                 get_access_token_with_password_verify)
 from app.services.users import user_registration
 from shared.adapters.redis import RedisService, get_redis_service
 
@@ -28,9 +29,13 @@ async def authorization(
     try:
         log.debug("USER_ID: %s", user.user_id)
         if user.password is None:
-            return await get_access_token_from_refresh(manager, redis_service, user.user_id)
+            return await get_access_token_from_refresh(
+                manager, redis_service, user.user_id
+            )
         else:
-            return await get_access_token_with_password_verify(manager, redis_service, user.password, user.user_id)
+            return await get_access_token_with_password_verify(
+                manager, redis_service, user.password, user.user_id
+            )
     except NotFoundError:
         log.debug("Token not exists")
         raise HTTPException(status_code=409)

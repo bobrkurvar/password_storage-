@@ -1,15 +1,15 @@
 import logging
 
-from app import domain
-from app.db import models
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import selectinload
 
+from app import domain
+from app.db import models
 from app.domain.exceptions import (AlreadyExistsError,
-                                          CustomForeignKeyViolationError,
-                                          NotFoundError)
+                                   CustomForeignKeyViolationError,
+                                   NotFoundError)
 from core import conf
 
 log = logging.getLogger(__name__)
@@ -197,6 +197,7 @@ class Crud:
 
 
 db_manager: Crud | None = None
+
 
 def get_db_manager() -> Crud:
     db_url = conf.db_url

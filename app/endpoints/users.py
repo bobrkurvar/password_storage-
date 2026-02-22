@@ -1,14 +1,14 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.adapters.auth import getUserFromTokenDep
 from app.adapters.crud import Crud, get_db_manager
-from app.domain.exceptions import NotFoundError, UnauthorizedError
 from app.domain import User
-from app.endpoints.schemas.user import UserOutput, UserForToken
+from app.domain.exceptions import NotFoundError, UnauthorizedError
 from app.endpoints.schemas.errors import ErrorResponse
+from app.endpoints.schemas.user import UserForToken, UserOutput
 from app.services.tokens import get_tokens
 from app.services.users import registration
 from shared.adapters.redis import RedisService, get_redis_service
@@ -35,6 +35,7 @@ async def read_user_by_id(user: getUserFromTokenDep, manager: dbManagerDep):
     user = (await manager.read(User, id=user["user_id"]))[0]
     log.debug("Пользователь получен %s, %s", user.get("id"), user.get("username"))
     return user
+
 
 @router.post("")
 async def sign_up(manager: dbManagerDep, user: UserForToken):

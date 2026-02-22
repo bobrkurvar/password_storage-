@@ -13,9 +13,8 @@ class UserForToken(BaseModel):
     user_id: int
     password: str | None = None
 
+
 class UserForRegistration(BaseModel):
     user_id: int
     username: str
     password: str
-
-

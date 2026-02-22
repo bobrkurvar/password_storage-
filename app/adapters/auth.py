@@ -7,7 +7,8 @@ from fastapi.security.oauth2 import OAuth2PasswordBearer
 
 from app.adapters.crud import Crud, get_db_manager
 from app.domain import Role
-from app.domain.exceptions import AccessTokenExpireError, InvalidAccessTokenError
+from app.domain.exceptions import (AccessTokenExpireError,
+                                   InvalidAccessTokenError)
 from core import conf
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login", auto_error=False)

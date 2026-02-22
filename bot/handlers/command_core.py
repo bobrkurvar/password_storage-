@@ -5,8 +5,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot.dialog.callback import CallbackFactory
-from bot.texts import phrases
 from bot.services.messages import delete_msg_if_exists
+from bot.texts import phrases
 from bot.utils.keyboards import get_inline_kb
 
 router = Router()

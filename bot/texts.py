@@ -21,6 +21,8 @@ ACCOUNT = {
     "params list": "<b>{}: {};\t </b>",
     "account params": "<b>Введите через пробел параметры для аккаунта в виде:\n"
     "параметр_1 параметр_2 ... параметр_n\nили нажмите menu если дополнительные параметры не нужны</b>",
+    "need unlock": "Введите master password для разблокировки хранилища",
+    "wrong password": "Неверный пароль, введите заново",
 }
 
 
@@ -36,6 +38,8 @@ class Phrases(BaseModel):
     account_password: str = ACCOUNT["account password"]
     account_created: str = ACCOUNT["account created"]
     params_list: str = ACCOUNT["params list"]
+    need_unlock: str = ACCOUNT["need unlock"]
+    wrong_password: str = ACCOUNT["wrong password"]
 
 
 phrases: Phrases = Phrases()

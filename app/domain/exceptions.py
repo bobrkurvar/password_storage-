@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class RepositoryError(Exception):
     """Базовое исключение репозитория"""
 
@@ -42,31 +43,38 @@ class UnauthorizedError(Exception):
         self.detail = detail
         super().__init__(self.detail)
 
+
 class InvalidTokenError(UnauthorizedError):
     def __init__(self, token_type: str):
         self.detail = f"Неправильный {token_type} token"
         super().__init__(self.detail)
 
+
 class InvalidAccessTokenError(InvalidTokenError):
     def __init__(self):
         super().__init__("access")
 
+
 class InvalidRefreshTokenError(InvalidTokenError):
     def __init__(self):
         super().__init__("refresh")
+
 
 class TokenExpireError(UnauthorizedError):
     def __init__(self, token_type: str):
         self.detail = f"Время жизни {token_type} token истекло"
         super().__init__(self.detail)
 
+
 class AccessTokenExpireError(TokenExpireError):
     def __init__(self):
         super().__init__("access")
 
+
 class RefreshTokenExpireError(TokenExpireError):
     def __init__(self):
         super().__init__("refresh")
+
 
 class CredentialsValidateError(UnauthorizedError):
     def __init__(self):

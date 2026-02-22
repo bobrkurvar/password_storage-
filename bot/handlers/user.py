@@ -4,15 +4,15 @@ from aiogram import Router
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
-from shared.adapters.external import MyExternalApiForBot
 
 from bot.dialog.states import InputUser
+from bot.http_client import MyExternalApiForBot
+from bot.services.auth import (AuthStage, ensure_auth,
+                               match_status_and_interface)
 from bot.texts import phrases
-from bot.services.tokens import match_status_and_interface, ensure_auth, AuthStage
 from bot.utils.flow import get_state_from_status
 from bot.utils.keyboards import get_inline_kb
 from shared.adapters.redis import RedisService
-
 
 router = Router()
 

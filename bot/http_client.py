@@ -4,6 +4,7 @@ from functools import wraps
 from aiohttp import ClientResponseError, ClientSession
 from aiohttp.client_exceptions import ClientConnectorError
 
+from bot.services.exceptions import UnauthorizedError, UnlockStorageError
 from core import conf
 
 log = logging.getLogger(__name__)
@@ -39,6 +40,10 @@ class MyExternalApiForBot:
         async with self._session.post(
             self._url + "auth", json={"user_id": user_id, "password": password}
         ) as resp:
+            if resp.status_code == "401":
+                raise UnauthorizedError
+            if resp.status_code == "409":
+                raise UnauthorizedError(True)
             resp.raise_for_status()
             return await resp.json()
 
@@ -92,23 +97,28 @@ class MyExternalApiForBot:
             return await resp.json()
 
     async def create_account(
-        self, access_token: str, account_name: str, password: str, params: list, user_password: str | None = None
+        self,
+        access_token: str,
+        account_name: str,
+        password: str,
+        params: list,
+        user_password: str | None = None,
     ):
-        try:
-            headers = {"Authorization": f"Bearer {access_token}"}
-        except KeyError:
-            headers = {}
+        headers = {"Authorization": f"Bearer {access_token}"}
         async with self._session.post(
             self._url + "account",
-            json={"name": account_name, "params": params, "password": password, "user_password": user_password},
+            json={
+                "name": account_name,
+                "params": params,
+                "password": password,
+                "user_password": user_password,
+            },
             headers=headers,
         ) as resp:
-            try:
-                resp.raise_for_status()
-                return await resp.json()
-            except ClientResponseError:
-                if resp.status_code == "403":
-                    pass
+            if resp.status_code == "403":
+                raise UnlockStorageError
+            resp.raise_for_status()
+            return await resp.json()
 
     async def create(self, prefix: str, **data):
         try:

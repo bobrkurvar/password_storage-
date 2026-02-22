@@ -1,7 +1,7 @@
 from aiogram.fsm.state import State
 
 from bot.dialog.states import InputUser
-from bot.services.tokens import AuthStage
+from bot.services import AuthStage
 
 
 def get_state_from_status(
@@ -22,3 +22,14 @@ def get_state_from_status(
     }
 
     return auth_status_to_state.get(status, None)
+
+
+async def set_previous_data(
+    redis_service, state, user_id, text: str | None = None, buttons=None
+):
+    previous_data = {"state": state.state}
+    if text is not None:
+        previous_data.update(text=text)
+    if buttons is not None:
+        previous_data.update(buttons=buttons)
+    await redis_service.set(f"{user_id}:previous_data", previous_data)

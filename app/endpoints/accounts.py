@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.adapters.auth import get_user_from_token, getUserFromTokenDep
 from app.adapters.crud import Crud, get_db_manager
