@@ -3,7 +3,7 @@ from datetime import timedelta
 
 import pytest
 
-from app.domain import Role, User
+from app.domain import Role, User, UserRole
 from app.services.tokens import create_access_token, create_refresh_token
 from core.logger import setup_logging
 
@@ -46,6 +46,7 @@ def storage():
                 defaults={"id": 1},
             ),
             Table(name=Role, columns=["name"], rows=[{"name": "admin"}]),
+            Table(name=UserRole, columns=["role_name", "user_id"])
         ]
     )
 

@@ -8,9 +8,7 @@ from aiogram.types import Message
 
 from bot.dialog.states import InputUser
 from bot.http_client import MyExternalApiForBot
-from bot.services.auth import (AuthStage, ensure_auth,
-                               match_status_and_interface)
-from bot.services.messages import delete_msg_if_exists
+from bot.services.auth import ensure_auth,match_status_and_interface
 from bot.texts import phrases
 from bot.utils.flow import get_state_from_status
 from bot.utils.keyboards import get_inline_kb
@@ -68,7 +66,6 @@ async def process_input_password(
         new_state = get_state_from_status(status, previous_state)
 
     kb = get_inline_kb(*buttons, user_id=message.from_user.id)
-    #await delete_msg_if_exists(msg, message)
     try:
         msg = (
             await message.bot.edit_message_text(

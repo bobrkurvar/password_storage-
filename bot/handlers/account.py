@@ -218,14 +218,6 @@ async def press_button_accounts(
     except AuthError as exc:
         status = exc.status
         text, buttons = match_status_and_interface(status)
-        # cur_state = await state.get_state()
-        # await set_previous_data(
-        #     redis_service,
-        #     cur_state,
-        #     callback.from_user.id,
-        #     phrases.account_created.format(account_name),
-        #     ("MENU",),
-        # )
     kb = get_inline_kb(*buttons)
     new_state = get_state_from_status(status)
     msg = (await callback.message.edit_text(text=text, reply_markup=kb)).message_id

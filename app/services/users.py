@@ -27,6 +27,7 @@ async def user_registration(
         await manager.create(
             UserRole, role_name=role_name, user_id=user["id"], session=uow.session
         )
+        return user
 
 
 async def get_user_derive_key(

@@ -2,7 +2,7 @@ import logging
 from copy import deepcopy
 from typing import Any
 
-from app.domain import NotFoundError, Role
+from app.domain import NotFoundError, UserRole
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class FakeStorage:
 
     def __init__(self):
         self.tables: dict[Any, Table] = {}
-        self.to_join = {"roles": Role}
+        self.to_join = {"roles": UserRole}
 
     def register_tables(self, models: list[Table]):
         for model in models:
