@@ -1,5 +1,4 @@
 import logging
-import base64
 from app.domain import CredentialsValidateError, User, UserRole
 from app.services.UoW import UnitOfWork
 from .security import derive_master_key, get_password_hash, get_salt, verify
