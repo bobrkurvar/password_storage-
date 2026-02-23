@@ -12,3 +12,7 @@ class AccountOutput(BaseModel):
     user_id: int
     name: str
     password: str
+
+class AccountSearch(BaseModel):
+    user_id: int
+    name: str

@@ -39,7 +39,7 @@ async def process_input_password(
         )
     new_state = None
     buttons = (
-        ("ACCOUNTS", "CREATE ACCOUNT")
+        ("ACCOUNTS", "CREATE ACCOUNT", {"text": "DELETE ACCOUNT", "switch": "delete"})
         if previous_buttons is None
         else previous_buttons
     )
@@ -65,7 +65,7 @@ async def process_input_password(
             text, buttons = match_status_and_interface(status, text, buttons)
         new_state = get_state_from_status(status, previous_state)
 
-    kb = get_inline_kb(*buttons, user_id=message.from_user.id)
+    kb = get_inline_kb(*buttons)
     try:
         msg = (
             await message.bot.edit_message_text(

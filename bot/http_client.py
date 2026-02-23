@@ -114,82 +114,27 @@ class MyExternalApiForBot:
             resp.raise_for_status()
             return await resp.json()
 
-    async def create(self, prefix: str, **data):
-        try:
-            headers = {"Authorization": f"Bearer {data.pop('access_token')}"}
-        except KeyError:
-            headers = {}
-        async with self._session.post(
-            self._url + prefix, json=data, headers=headers
+    async def delete_account(self, access_token: str, account_id: int):
+        headers = {"Authorization": f"Bearer {access_token}"}
+        async with self._session.delete(
+            self._url + f"accounts/{account_id}",
+            headers=headers,
         ) as resp:
-            try:
-                resp.raise_for_status()
-                return await resp.json()
-            except ClientResponseError:
-                return None
-
-    async def remove(self, prefix: str, **data):
-        id_ = data.get("ident")
-        try:
-            headers = {"Authorization": f"Bearer {data.pop('access_token')}"}
-        except KeyError:
-            headers = {}
-        log.debug("ext data: %s", data)
-        if (not (id_ is None)) and (len(data) == 1):
-            async with self._session.delete(
-                self._url + prefix + f"/{id_}", headers=headers
-            ):
-                pass
-        else:
-            async with self._session.delete(
-                self._url + prefix, params=data, headers=headers
-            ):
-                pass
-
-    async def read(self, prefix: str, **data):
-        id_ = data.get("ident")
-        try:
-            headers = {"Authorization": f"Bearer {data.pop('access_token')}"}
-        except KeyError:
-            headers = {}
-        try:
-            if (not (id_ is None)) and (len(data) == 1):
-                async with self._session.get(
-                    self._url + prefix + f"/{id_}", headers=headers
-                ) as resp:
-                    resp.raise_for_status()
-                    data = await resp.json()
-            else:
-                async with self._session.get(
-                    self._url + prefix, params=data, headers=headers
-                ) as resp:
-                    resp.raise_for_status()
-                    data = await resp.json()
-        except ClientResponseError:
-            return None
-        return data
-
-    async def update(self, prefix: str, **data):
-        ident = data.get("ident")
-        if ident is None:
-            id_ = data.pop("ident_val", None)
-            async with self._session.patch(self._url + prefix + f"/{id_}", data=data):
-                pass
-        else:
-            async with self._session.patch(self._url + prefix, data=data):
-                pass
-
-    async def login(self, **kwargs):
-        async with self._session.post(self._url + "login", data=kwargs) as resp:
-            tokens = await resp.json()
-            access_token = tokens.get("access_token")
-            refresh_token = tokens.get("refresh_token")
-        return {"access_token": access_token, "refresh_token": refresh_token}
-
-    async def refresh(self, refresh_token: str):
-        headers = {"Authorization": f"Bearer {refresh_token}"}
-        async with self._session.post(self._url + "refresh", headers=headers) as resp:
+            resp.raise_for_status()
             return await resp.json()
+
+
+    async def search_full_text(self, access_token: str, search_query: str, **filters):
+        headers = {"Authorization": f"Bearer {access_token}"}
+        filters.update(name=search_query)
+        async with self._session.get(
+            self._url + "accounts/search",
+            json=filters,
+            headers=headers,
+        ) as resp:
+            resp.raise_for_status()
+            return await resp.json()
+
 
     async def connect(self):
         if not self._session:

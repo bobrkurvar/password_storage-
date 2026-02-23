@@ -5,9 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.adapters.auth import get_user_from_token, getUserFromTokenDep
 from app.adapters.crud import Crud, get_db_manager
-from app.endpoints.schemas.account import AccountInput
+from app.endpoints.schemas.account import AccountInput, AccountSearch
 from app.services.account import create_account, read_accounts
 from shared.adapters.redis import RedisService, get_redis_service
+from app.domain import Account
 
 router = APIRouter(
     prefix="/accounts",
@@ -35,3 +36,15 @@ async def create_account_with_params(
         raise HTTPException(status_code=403, detail="Invalid credentials")
 
     return created_account
+
+@router.get("/search")
+async def search_account_full_text_name(account: AccountSearch, manager: dbManagerDep):
+    return await manager.search_full_text(Account, user_id=account.user_id, search_query=account.name)
+
+
+@router.delete("/{account_id}")
+async def delete_account(
+    user: getUserFromTokenDep, account_id: int, manager: dbManagerDep
+):
+    log.debug("delete account with id: %s, user_id: %s", account_id, user.get("id"))
+    return await manager.delete(Account, user_id=int(user.get("user_id")), id=account_id)

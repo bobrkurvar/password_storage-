@@ -1,6 +1,6 @@
 import logging
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, select, update, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import selectinload
@@ -45,10 +45,10 @@ class Crud:
         async def _create_internal(session):
             if seq_data:
                 log.debug("создание нескольких объектов")
-                objs = [model(**data) for data in seq_data]
+                objs = tuple(model(**data) for data in seq_data)
                 session.add_all(objs)
                 await session.flush()
-                return [obj.model_dump() for obj in objs]
+                return tuple(obj.model_dump() for obj in objs)
             else:
                 log.debug(
                     "%s: параметры для создания %s",
@@ -107,14 +107,16 @@ class Crud:
             if not deleted_records:
                 raise NotFoundError(model.__name__, str(filters))
 
+            result = tuple(record.model_dump() for record in deleted_records)
+
             log.debug(
                 "Удалено %d записей из %s с фильтрами: %s",
-                len(deleted_records),
+                len(result),
                 model.__name__,
                 filters,
             )
+            return result
 
-            return tuple(record.model_dump() for record in result)
 
         if session is not None:
             return await _delete_internal(session)
@@ -186,14 +188,44 @@ class Crud:
             if limit:
                 query = query.limit(limit)
 
-            result = (await session.execute(query)).unique().scalars().all()
-            return [r.model_dump() for r in result]
+            result = (await session.execute(query)).unique().scalars()
+            return tuple(r.model_dump() for r in result)
 
         if session is not None:
             return await _read_internal(session)
         else:
             async with self._session_factory.begin() as session:
                 return await _read_internal(session)
+
+    async def search_full_text(
+        self,
+        domain_model,
+        search_query: str,
+        session=None,
+        limit: int = 10,
+        **filters
+    ):
+        """
+        Полнотекстовый поиск по tsvector полю name_tsv.
+        domain_model должен быть зарегистрирован через self.register.
+        """
+        async def _search_internal(session):
+            model = self._mapper[domain_model]
+
+            query = select(model)
+            for field, value in filters.items():
+                query = query.where(getattr(model, field) == value)
+
+            query = query.where(text("to_tsvector('simple', name) @@ to_tsquery('simple', :q)")).limit(limit)
+
+            result = await session.execute(query.params(q=search_query + ":*"))
+            return tuple(r.model_dump() for r in result.scalars())
+
+        if session is not None:
+            return await _search_internal(session)
+        else:
+            async with self._session_factory.begin() as session_ctx:
+                return await _search_internal(session_ctx)
 
 
 db_manager: Crud | None = None

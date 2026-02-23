@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from aiogram import F, Router
@@ -5,7 +6,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, InlineQuery, InlineQueryResultArticle, InputTextMessageContent, ChosenInlineResult
 
 from bot.dialog.callback import CallbackFactory
 from bot.dialog.states import InputAccount
@@ -13,7 +14,7 @@ from bot.http_client import MyExternalApiForBot
 from bot.services.auth import (action_with_unlock_storage, ensure_auth,
                                match_status_and_interface)
 from bot.services.exceptions import AuthError
-from bot.services.messages import delete_msg_if_exists
+from bot.services.messages import delete_msg_if_exists, delayed_search, USER_PENDING_TASKS
 from bot.texts import phrases
 from bot.utils.flow import get_state_from_status, set_previous_data
 from bot.utils.keyboards import get_inline_kb
@@ -223,3 +224,84 @@ async def press_button_accounts(
     msg = (await callback.message.edit_text(text=text, reply_markup=kb)).message_id
     await state.set_state(new_state)
     await state.update_data(msg=msg)
+
+
+@router.callback_query(
+    StateFilter(default_state), CallbackFactory.filter(F.act.lower() == 'delete account')
+)
+async def press_button_delete_account(callback: CallbackQuery,ext_api_manager: MyExternalApiForBot, redis_service: RedisService, state: FSMContext):
+    try:
+        token, status = await ensure_auth(ext_api_manager, redis_service, callback.from_user.id)
+        ok_text = "Введите имя аккаунта, который желаете удалить"
+        text, buttons = match_status_and_interface(ok_text=ok_text)
+    except AuthError as exc:
+        status = exc.status
+        text, buttons = match_status_and_interface(status)
+    kb = get_inline_kb(*buttons)
+    new_state = get_state_from_status(status)
+    msg = (await callback.message.edit_text(text=text, reply_markup=kb)).message_id
+    await state.set_state(new_state)
+    await state.update_data(msg=msg)
+
+
+@router.inline_query()
+async def inline_search(
+    inline_query: InlineQuery,
+    ext_api_manager: MyExternalApiForBot,
+    redis_service: RedisService,
+):
+    query = " ".join(inline_query.query.split()[1:])
+    query = query.strip()
+    log.debug("inline search with query: %s", query)
+
+    if query:
+        try:
+            token, _ = await ensure_auth(ext_api_manager, redis_service, inline_query.from_user.id)
+            user_id = inline_query.from_user.id
+            if user_id in USER_PENDING_TASKS:
+                USER_PENDING_TASKS[user_id].cancel()
+            search_task = asyncio.create_task(delayed_search(ext_api_manager, user_id, query, token))
+            USER_PENDING_TASKS[user_id] = search_task
+            accounts = await search_task
+            results = [
+                InlineQueryResultArticle(
+                    id=str(acc["id"]),
+                    title=acc["name"],
+                    description=f"ID: {acc['id']}",
+                    input_message_content=InputTextMessageContent(
+                        message_text=f"Аккаунт: {acc['name']}\nID: {acc['id']}"
+                    ),
+                )
+                for acc in accounts
+            ]
+            await inline_query.answer(results, cache_time=1, is_personal=True)
+        except AuthError:
+            await inline_query.answer(
+                results=[],  # пустой список → закрывает панель
+                cache_time=1,
+                is_personal=True,
+                switch_pm_text="Нужна авторизация",
+                switch_pm_parameter="auth"  # пользователь сможет перейти в личный чат
+            )
+        except asyncio.CancelledError:
+            pass
+
+
+@router.chosen_inline_result()
+async def choose_from_inline(result: ChosenInlineResult, ext_api_manager: MyExternalApiForBot, state: FSMContext, redis_service: RedisService):
+    log.debug("chosen inline: %s", result.query)
+    if result.query.startswith("delete"):
+        try:
+            token, status = await ensure_auth(ext_api_manager, redis_service, result.from_user.id)
+            account_id = result.result_id
+            log.debug("account_id: %s", account_id)
+            text, buttons = match_status_and_interface(ok_text=f"аккаунт {account_id} удалён")
+            await ext_api_manager.delete_account(account_id=int(account_id), access_token=token)
+        except AuthError as exc:
+            status = exc.status
+            text, buttons = match_status_and_interface(status)
+        kb = get_inline_kb(*buttons)
+        new_state = get_state_from_status(status)
+        msg = (await result.bot.send_message(chat_id=result.from_user.id, text=text, reply_markup=kb)).message_id
+        await state.update_data(msg=msg)
+        await state.set_state(new_state)
