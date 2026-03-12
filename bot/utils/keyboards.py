@@ -7,35 +7,10 @@ from bot.dialog.callback import CallbackFactory
 
 log = logging.getLogger(__name__)
 
-# def get_simple_inline_kb(
-#     *buttons_texts, width: int = 1
-# ) -> InlineKeyboardMarkup:
-#     kb_builder = InlineKeyboardBuilder()
-#     buttons: list[InlineKeyboardButton] = [InlineKeyboardButton(text=i) for i in buttons_texts]
-#     kb_builder.row(*buttons, width=width)
-#     return kb_builder.as_markup()
-#
-#
-# def get_inline_kb_with_callback_data(
-#     buttons: list[dict], width: int = 1
-# ):
-#     kb_builder = InlineKeyboardBuilder()
-#     result_buttons: list[InlineKeyboardButton] = []
-#     for button_data in buttons:
-#         text = button_data.pop("text")
-#         switch = button_data.pop("switch", False)
-#         button = InlineKeyboardButton(
-#             text=text, callback_data=CallbackFactory(**button_data).pack(), switch_inline_query=""
-#         ) if switch else InlineKeyboardButton(
-#             text=text, callback_data=CallbackFactory(**button_data).pack()
-#         )
-#         result_buttons.append(button)
-#     kb_builder.row(*buttons, width=width)
-#     return kb_builder.as_markup()
 
 def get_inline_kb(
     *buttons, width: int = 1
-):
+) -> InlineKeyboardMarkup:
     kb_builder = InlineKeyboardBuilder()
     result_buttons: list[InlineKeyboardButton] = []
     log.debug("buttons: %s", buttons)

@@ -2,7 +2,6 @@
 .env
 .venv
 .idea/
-migrations/**
 alembic.ini
 
 
