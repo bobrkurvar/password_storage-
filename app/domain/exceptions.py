@@ -1,5 +1,3 @@
-from enum import Enum
-
 
 class RepositoryError(Exception):
     """Базовое исключение репозитория"""
@@ -80,3 +78,13 @@ class CredentialsValidateError(UnauthorizedError):
     def __init__(self):
         self.detail = "Не правильные учётные данные"
         super().__init__(self.detail)
+
+
+class ManyAuthRequestsError(Exception):
+    # Исключение для auth rate limiter
+    def __init__(self, count: int, delay: int):
+        self.count = count
+        self.delay = delay
+        self.detail = f"{self.count} requests, delay: {self.delay} sec"
+        super().__init__(self.detail)
+

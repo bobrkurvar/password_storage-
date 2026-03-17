@@ -24,9 +24,10 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
-#manager = get_db_manager()
-#config.set_main_option("sqlalchemy.url", manager._engine.url.render_as_string(hide_password=False))
-config.set_main_option("sqlalchemy.url", conf.db_url)
+db_url = config.get_main_option("sqlalchemy.url")
+if not db_url:
+    db_url = conf.db_url
+    config.set_main_option("sqlalchemy.url", db_url)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

@@ -6,6 +6,7 @@ import bcrypt
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from core import conf
 
 log = logging.getLogger(__name__)
 
@@ -36,8 +37,9 @@ def derive_master_key(user_password: str, salt: str) -> bytes:
 
 
 def get_password_hash(password: str) -> str:
+    combined = (password + conf.pepper).encode()
     salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password.encode(), salt)
+    hashed = bcrypt.hashpw(combined, salt)
     return hashed.decode()
 
 
@@ -46,4 +48,5 @@ def get_salt() -> str:
 
 
 def verify(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(password.encode(), hashed.encode())
+    combined = (password + conf.pepper).encode()
+    return bcrypt.checkpw(combined, hashed.encode())

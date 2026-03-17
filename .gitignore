@@ -2,6 +2,5 @@
 .env
 .venv
 .idea/
-alembic.ini
 
 

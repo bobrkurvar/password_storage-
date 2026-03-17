@@ -50,11 +50,6 @@ class RedisService:
         self.prefix = prefix
         self.redis = redis
 
-    # def init_conn(self, redis):
-    #     self.redis = redis
-    #
-    # def set_prefix(self, prefix: str):
-    #     self.prefix = prefix
     def init_conn(self, redis):
         self.redis = redis
 
@@ -92,6 +87,14 @@ class RedisService:
     async def exists(self, key: str) -> bool:
         key = f"{self.prefix}:{key}"
         return bool(await self.redis.exists(key))
+
+    async def incr(self, key: str) -> int:
+        key = f"{self.prefix}:{key}"
+        return await self.redis.incr(key)
+
+    async def expire(self, key: str, ttl: int):
+        key = f"{self.prefix}:{key}"
+        await self.redis.expire(key, ttl)
 
 
 redis_service: RedisService | None = None

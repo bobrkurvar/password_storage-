@@ -231,8 +231,8 @@ class Crud:
 db_manager: Crud | None = None
 
 
-def get_db_manager() -> Crud:
-    db_url = conf.db_url
+def get_db_manager(test: bool = False) -> Crud:
+    db_url = conf.test_db_url if test else conf.db_url
     domain_with_orm = {
         domain.User: models.User,
         domain.UserRole: models.UserRole,

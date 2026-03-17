@@ -10,16 +10,23 @@ class Settings(BaseSettings):
     db_user: str
     db_password: str
     db_name: str
+    test_db_name: str
     bot_token: str
     redis_host: str
     api_host: str
     secret_key: str
     algorithm: str
     queue_host: str
+    pepper: str
+
 
     @property
     def db_url(self):
         return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+
+    @property
+    def test_db_url(self):
+        return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.test_db_name}"
 
 
 def load_config() -> Settings:

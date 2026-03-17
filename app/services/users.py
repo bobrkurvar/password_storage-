@@ -1,5 +1,5 @@
 import logging
-from app.domain import CredentialsValidateError, User, UserRole
+from app.domain import CredentialsValidateError, User, UserRole, ManyAuthRequestsError
 from app.services.UoW import UnitOfWork
 from .security import derive_master_key, get_password_hash, get_salt, verify
 
@@ -29,9 +29,7 @@ async def user_registration(
         return user
 
 
-async def get_user_derive_key(
-    redis_service, manager, user_id: int, password: str | None = None
-):
+async def get_user_derive_key(redis_service, manager, user_id: int, password: str | None = None):
     master_key_redis_key = f"{user_id}:master_key"
     key = await redis_service.get(master_key_redis_key)
     if key is None and password:
@@ -45,3 +43,14 @@ async def get_user_derive_key(
     if isinstance(key, str):
         key = key.encode("utf-8")
     return key
+
+
+async def login_attempts(redis_service, user_id: int):
+    attempts = await redis_service.incr(f"{user_id}:login_attempts")
+    delay = 2 ** attempts
+    blocked = await redis_service.get(f"{user_id}:blocked")
+    if blocked:
+        raise ManyAuthRequestsError(attempts, delay)
+    await redis_service.set(f"{user_id}:blocked", 1, ttl=delay)
+
+

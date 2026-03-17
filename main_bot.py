@@ -12,17 +12,15 @@ from bot.handlers import main_router
 from bot.http_client import ext_api_manager
 from core import conf
 from core.logger import setup_logging
-from shared.adapters.queue_client import RabbitMQClient
 from shared.adapters.redis import get_redis_client, get_redis_service
 
 bot = Bot(conf.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 log = logging.getLogger(__name__)
 
+setup_logging()
 
 @asynccontextmanager
 async def init_all():
-    # rmq_client = RabbitMQClient()
-    # await rmq_client.connect("logs_queue")
     redis_client = get_redis_client()
     redis_conn = await redis_client.init_redis()
     try:
@@ -45,7 +43,6 @@ async def init_all():
 
         yield
     finally:
-    # await rmq_client.close()
         if redis_conn:
             await redis_client.close_redis()
         try:
