@@ -83,7 +83,7 @@ class MyExternalApiForBot:
             return await resp.json()
 
 
-    async def master_key(self, access_token: str, password: str):
+    async def unlock_storage(self, access_token: str, password: str):
         headers = {"Authorization": f"Bearer {access_token}"}
         async with self._session.post(
             self._url + "auth/master-key", headers=headers, data=password
@@ -114,6 +114,7 @@ class MyExternalApiForBot:
                 raise UnlockStorageError
             resp.raise_for_status()
             return await resp.json()
+
 
     async def delete_account(self, access_token: str, account_id: int):
         headers = {"Authorization": f"Bearer {access_token}"}

@@ -45,8 +45,7 @@ async def action_with_unlock_storage(
 ):
     if password is not None and http_client is not None:
         try:
-            await http_client.master_key(access_token=access_token, password=password)
-            log.debug("TOKEN IN action_with_unlock_storage: %s", access_token)
+            await http_client.unlock_storage(access_token=access_token, password=password)
             return await action()
         except UnauthorizedError:
             raise AuthError(AuthStage.WRONG_PASSWORD)
@@ -55,26 +54,6 @@ async def action_with_unlock_storage(
             return await action()
         except UnlockStorageError:
             raise AuthError(AuthStage.NEED_UNLOCK)
-
-
-# async def action_with_unlock_storage(
-#         action,
-#         *args,
-#         access_token: str | None = None,
-#         http_client = None,
-#         password: str | None = None,
-#         **kwargs
-# ):
-#     try:
-#         await action(*args, **kwargs)
-#     except UnlockStorageError:
-#         if password is not None and http_client is not None:
-#             try:
-#                 await http_client.master_key(access_token=access_token, password=password)
-#                 await action(*args, **kwargs)
-#             except UnauthorizedError:
-#                 raise AuthError(AuthStage.WRONG_PASSWORD)
-#         raise AuthError(AuthStage.NEED_UNLOCK)
 
 
 def match_status_and_interface(

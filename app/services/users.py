@@ -1,7 +1,7 @@
 import logging
 from app.domain import CredentialsValidateError, User, UserRole, ManyAuthRequestsError
 from app.services.UoW import UnitOfWork
-from app.infra.security import derive_master_key, get_password_hash, get_salt, verify
+from app.infra.security import derive_master_key, get_password_hash, get_salt, verify, encrypt_dek, generate_dek, decrypt_dek
 
 log = logging.getLogger(__name__)
 
@@ -12,6 +12,9 @@ async def user_registration(
 ):
     # регистрация пользователя
     salt = get_salt()
+    kek = derive_master_key(password, salt)
+    dek = generate_dek()
+    encrypted_dek = encrypt_dek(dek, kek)
     async with uow_class(manager._session_factory) as uow:
         user = await manager.create(
             User,
@@ -19,6 +22,7 @@ async def user_registration(
             password=get_password_hash(password),
             username=username,
             salt=salt,
+            encrypted_dek = encrypted_dek,
             session=uow.session,
         )
         is_admin = await manager.read(UserRole, user_id=user_id, role_name="admin", session=uow.session)
@@ -29,20 +33,21 @@ async def user_registration(
         return user
 
 
-async def get_user_derive_key(redis_service, manager, user_id: int, password: str | None = None):
-    master_key_redis_key = f"{user_id}:master_key"
-    key = await redis_service.get(master_key_redis_key)
-    if key is None and password:
+async def get_dek_from_redis_or_password(redis_service, manager, user_id: int, password: str | None = None):
+    redis_dek_key = f"{user_id}:dek"
+    dek = await redis_service.get(redis_dek_key)
+    if dek is None and password:
         user = (await manager.read(User, id=user_id))[0]
         if verify(password, user.get("password")):
-            key = derive_master_key(password, user.get("salt"))
-            encoded_key = key.decode("utf-8") # bytes → str
-            await redis_service.set(master_key_redis_key, encoded_key, ttl=900)
+            kek = derive_master_key(password, user.get("salt"))
+            dek = decrypt_dek(encrypted_dek=user["encrypted_dek"], kek=kek)
+            encoded_dek= dek.decode("utf-8") # bytes → str
+            await redis_service.set(redis_dek_key, encoded_dek, ttl=900)
         else:
             raise CredentialsValidateError
-    if isinstance(key, str):
-        key = key.encode("utf-8")
-    return key
+    if isinstance(dek, str):
+        dek = dek.encode("utf-8")
+    return dek
 
 
 async def login_attempts(redis_service, user_id: int):

@@ -13,7 +13,8 @@ class User(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     username: Mapped[str] = mapped_column(unique=True)
     password: Mapped[str] = mapped_column(String(256))
-    salt: Mapped[str] = mapped_column(nullable=False)
+    salt: Mapped[str]
+    encrypted_dek: Mapped[str]
     accounts: Mapped[list["Account"]] = relationship("Account", back_populates="user")
     # actions: Mapped[list["UsersActions"]] = relationship(
     #     "UsersActions", back_populates="user"
@@ -30,6 +31,7 @@ class User(Base):
             "id": self.id,
             "username": self.username,
             "salt": self.salt,
+            "encrypted_dek": self.encrypted_dek,
             "password": self.password,
             "roles_names": (
                 None

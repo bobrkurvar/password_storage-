@@ -4,7 +4,7 @@ from app.domain.account import Account, Param
 from app.services.UoW import UnitOfWork
 
 from app.infra.security import encrypt_account_content, decrypt_account_content
-from .users import get_user_derive_key
+from .users import get_dek_from_redis_or_password
 
 log = logging.getLogger(__name__)
 
@@ -19,12 +19,12 @@ async def create_account(
     user_password: str | None = None,
     uow_class=UnitOfWork
 ):
-    master_key = await get_user_derive_key(
+    dek = await get_dek_from_redis_or_password(
         redis_service, manager, user_id, user_password
     )
-    if master_key:
+    if dek:
         async with uow_class(manager._session_factory) as uow:
-            password = encrypt_account_content(password, master_key)
+            password = encrypt_account_content(password, dek)
             account = await manager.create(
                 Account,
                 name=name,
@@ -36,7 +36,7 @@ async def create_account(
             for param in params:
                 if param["secret"]:
                     param["content"] = encrypt_account_content(
-                        param["content"], master_key
+                        param["content"], dek
                     )
                 param.update(account_id=account["id"])
                 await manager.create(Param, session=uow.session, **param)
@@ -45,10 +45,10 @@ async def create_account(
 
 
 async def read_accounts(manager, redis_service, user_id: int, **filters):
-    master_key = await get_user_derive_key(
+    dek = await get_dek_from_redis_or_password(
         redis_service, manager, user_id
     )
-    if master_key:
+    if dek:
         accounts = await manager.read(
             Account,
             user_id=user_id,
@@ -56,9 +56,9 @@ async def read_accounts(manager, redis_service, user_id: int, **filters):
             **filters
         )
         for account in accounts:
-            account["password"] = decrypt_account_content(account["password"], master_key)
+            account["password"] = decrypt_account_content(account["password"], dek)
             for param in account["params"]:
                 log.debug("param: %s", param)
                 if param["secret"]:
-                    param["content"] = decrypt_account_content(param["content"], master_key)
+                    param["content"] = decrypt_account_content(param["content"], dek)
         return accounts
