@@ -2,33 +2,25 @@ import logging
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from fastapi.security.oauth2 import OAuth2PasswordBearer
 
 from app.adapters.crud import Crud, get_db_manager
-from app.domain import Role
 from app.domain.exceptions import (AccessTokenExpireError,
                                    InvalidAccessTokenError)
-from core import conf
+from app.services.tokens import user_info_from_token, user_roles
+from app.infra.tokens import TokensManager
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login", auto_error=False)
-secret_key = conf.secret_key
-algorithm = conf.algorithm
 log = logging.getLogger(__name__)
 
+tokensManagerDep = Annotated[TokensManager, Depends()]
 
-def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
+def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)], tokens_manager: tokensManagerDep):
     log.debug("Starting get_user_from_token")
     try:
         log.debug("token %s", token)
-        payload = jwt.decode(token, secret_key, algorithms=algorithm)
-        log.debug("Decoded payload: %s", payload)
-        user_id = payload.get("sub")
-        roles = payload.get("roles")
-        if user_id is None:
-            log.debug("user_id is None")
-            raise InvalidAccessTokenError
-        user = {"user_id": int(user_id), "roles": roles}
+        user = user_info_from_token(token, tokens_manager)
     except jwt.ExpiredSignatureError:
         raise AccessTokenExpireError
     except jwt.InvalidTokenError:
@@ -39,25 +31,7 @@ def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
 getUserFromTokenDep = Annotated[dict, Depends(get_user_from_token)]
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 
-
-def make_role_checker(required_role: list):
+def make_role_checker(required_roles: list):
     async def check_user_roles(manager: dbManagerDep, user: getUserFromTokenDep):
-        roles = user.get("roles")
-        if "admin" in roles or "moderator" in roles:
-            log.debug("управляющая роль проверка роли за базы данных")
-            roles = await manager.read(
-                Role,
-                ident="user_id",
-                ident_val=int(user.get("user_id")),
-                to_join="users_roles",
-            )
-            roles = [role.get("role_name") for role in roles]
-        log.debug("проверка роли %s на присутствие в %s", roles, required_role)
-        log.debug("user role %s", roles)
-        if all(role not in required_role for role in roles):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="не доступно"
-            )
-        return user
-
+        return user_roles(manager, user, required_roles)
     return check_user_roles

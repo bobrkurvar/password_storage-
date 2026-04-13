@@ -1,27 +1,19 @@
-from datetime import timedelta
-
 import jwt
 
-from app.services.tokens import create_access_token, create_refresh_token
+from app.infra.tokens import TokensManager
 from core import conf
-
-from app.tests.fakes import FakeCRUD
 
 
 def get_tokens(
     access_data: dict | None = None,
     refresh_data: dict | None = None,
-    time_life: timedelta | None = None,
 ):
+    token_manager = TokensManager()
     access_data = {} if access_data is None else access_data
-    access_token = create_access_token(access_data, time_life)
+    access_token = token_manager.create_access_token(access_data)
     refresh_data = {} if refresh_data is None else refresh_data
-    refresh_token = create_refresh_token(refresh_data, time_life)
+    refresh_token = token_manager.create_refresh_token(refresh_data)
     return access_token, refresh_token
-
-
-def add_to_table(crud: FakeCRUD, table, row: dict):
-    crud.storage.add(table, **row)
 
 
 def decode_token(token: str):

@@ -1,3 +1,3 @@
-from core.logger import setup_logging
+from core.logger import setup_test_logging
 
-setup_logging()
+setup_test_logging()

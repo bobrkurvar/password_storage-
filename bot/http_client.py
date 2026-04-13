@@ -47,6 +47,7 @@ class MyExternalApiForBot:
             resp.raise_for_status()
             return await resp.json()
 
+
     async def sign_up(self, user_id: int | None, username: str | None, password: str):
         async with self._session.post(
             self._url + "user",

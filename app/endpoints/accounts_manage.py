@@ -23,7 +23,7 @@ router = APIRouter(
         },
         status.HTTP_403_FORBIDDEN: {"detail": "Role error", "model": ErrorResponse},
     },
-    dependencies=[Depends(make_role_checker(required_role=["admin", "moderator"]))],
+    dependencies=[Depends(make_role_checker(required_roles=["admin", "moderator"]))],
 )
 log = logging.getLogger(__name__)
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
@@ -79,7 +79,7 @@ async def account_by_id(account_id: int, manager: dbManagerDep):
             "model": ErrorResponse,
         }
     },
-    dependencies=[Depends(make_role_checker(required_role=["admin"]))],
+    dependencies=[Depends(make_role_checker(required_roles=["admin"]))],
 )
 async def delete_accounts(
     ident: str | None, ident_val: int | None, manager: dbManagerDep
@@ -104,7 +104,7 @@ async def delete_accounts(
             "model": ErrorResponse,
         }
     },
-    dependencies=[Depends(make_role_checker(required_role=["admin"]))],
+    dependencies=[Depends(make_role_checker(required_roles=["admin"]))],
 )
 async def delete_account_by_id(account_id: int, manager: dbManagerDep):
     log.debug("ЗАПРСО НА УДАЛЕНИЕ АККАУНТА С ID: %s", account_id)

@@ -1,58 +1,25 @@
 import logging
-from datetime import timedelta
 
 import pytest
 
-from app.domain import Role, User, UserRole
-from app.services.tokens import create_access_token, create_refresh_token
+from app.infra.tokens import TokensManager
 from core.logger import setup_logging
-
-from app.tests.fakes import FakeCRUD, FakeRedis, FakeStorage, Table
+from app.tests.fakes import FakeCRUD, FakeRedis
 
 setup_logging()
 log = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def get_tokens():
-    def token_factory(
-        access_data: dict | None = None,
-        refresh_data: dict | None = None,
-        time_life: timedelta | None = None,
-    ):
-        access_data = {} if access_data is None else access_data
-        access_token = create_access_token(access_data, time_life)
-        refresh_data = {} if refresh_data is None else refresh_data
-        refresh_token = create_refresh_token(refresh_data, time_life)
-        return access_token, refresh_token
-
-    return token_factory
+def tokens_manager():
+    return TokensManager()
 
 
 @pytest.fixture
-def fake_redis():
+def redis_service():
     return FakeRedis()
 
 
 @pytest.fixture
-def storage():
-    storage = FakeStorage()
-
-    storage.register_tables(
-        [
-            Table(
-                name=User,
-                columns=["id", "username", "password", "salt"],
-                defaults={"id": 1},
-            ),
-            Table(name=Role, columns=["name"], rows=[{"name": "admin"}]),
-            Table(name=UserRole, columns=["role_name", "user_id"])
-        ]
-    )
-
-    return storage
-
-
-@pytest.fixture
-def fake_db(storage):
-    return FakeCRUD(storage)
+def manager():
+    return FakeCRUD()

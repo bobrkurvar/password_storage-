@@ -11,6 +11,7 @@ from app.domain.exceptions import (AlreadyExistsError,
                                    CustomForeignKeyViolationError,
                                    NotFoundError)
 from core import conf
+import asyncio
 
 log = logging.getLogger(__name__)
 
@@ -22,9 +23,29 @@ class Crud:
         self._session_factory = None
         self._mapper = domain_with_orm if domain_with_orm else {}
 
-    def connect(self):
+    # def connect(self):
+    #     if self._engine is None:
+    #         self._engine = create_async_engine(self.url)
+    #     if self._session_factory is None:
+    #         self._session_factory = async_sessionmaker(self._engine)
+
+    async def connect(self, retries: int = 10, delay: float = 1.0):
         if self._engine is None:
             self._engine = create_async_engine(self.url)
+
+        last_error = None
+        for attempt in range(retries):
+            try:
+                async with self._engine.connect() as conn:
+                    await conn.execute(text("SELECT 1"))
+                break
+            except Exception as e:
+                last_error = e
+                log.debug(f"[DB] attempt {attempt + 1}/{retries} failed: {e}")
+                await asyncio.sleep(delay)
+        else:
+            raise RuntimeError("DB is not available") from last_error
+
         if self._session_factory is None:
             self._session_factory = async_sessionmaker(self._engine)
 

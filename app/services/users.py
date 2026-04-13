@@ -1,7 +1,7 @@
 import logging
 from app.domain import CredentialsValidateError, User, UserRole, ManyAuthRequestsError
 from app.services.UoW import UnitOfWork
-from .security import derive_master_key, get_password_hash, get_salt, verify
+from app.infra.security import derive_master_key, get_password_hash, get_salt, verify
 
 log = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ async def user_registration(
             salt=salt,
             session=uow.session,
         )
-        is_admin = await manager.read(UserRole, user_id=user_id, role_name="admin")
+        is_admin = await manager.read(UserRole, user_id=user_id, role_name="admin", session=uow.session)
         role_name = "admin" if is_admin else "user"
         await manager.create(
             UserRole, role_name=role_name, user_id=user["id"], session=uow.session

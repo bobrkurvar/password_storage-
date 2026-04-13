@@ -6,18 +6,19 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from app.adapters.crud import Crud, get_db_manager
 from app.domain.exceptions import NotFoundError, UnauthorizedError, CredentialsValidateError, ManyAuthRequestsError
 from app.endpoints.schemas.user import UserForRegistration, UserForToken
-from app.services.tokens import get_access_token_from_refresh, get_access_token_with_password_verify
+from app.services.tokens import get_access_token_from_refresh, get_access_token_from_login
 from app.services.users import user_registration
 from shared.adapters.redis import RedisService, get_redis_service
 from app.adapters.auth import getUserFromTokenDep
 from app.services.users import get_user_derive_key, login_attempts
 from fastapi_limiter.depends import RateLimiter
+from app.infra.tokens import TokensManager
 
 router = APIRouter(prefix="/auth", tags=["own"])
 log = logging.getLogger(__name__)
 dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
 redisServiceDep = Annotated[RedisService, Depends(get_redis_service)]
-
+dbTokenManager = Annotated[TokensManager, Depends()]
 
 @router.post("/register")
 async def registration(manager: dbManagerDep, user: UserForRegistration):
@@ -26,17 +27,17 @@ async def registration(manager: dbManagerDep, user: UserForRegistration):
 
 @router.post("", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def authorization(
-    manager: dbManagerDep, redis_service: redisServiceDep, user: UserForToken
+    manager: dbManagerDep, redis_service: redisServiceDep, user: UserForToken, tokens_manager: dbTokenManager
 ):
     try:
         await login_attempts(redis_service, user.user_id)
         if user.password is None:
             return await get_access_token_from_refresh(
-                manager, redis_service, user.user_id
+                manager, redis_service, tokens_manager, user.user_id
             )
         else:
-            return await get_access_token_with_password_verify(
-                redis_service, manager, user.password, user.user_id
+            return await get_access_token_from_login(
+                redis_service, manager, tokens_manager, user.password, user.user_id
             )
     except NotFoundError:
         raise HTTPException(status_code=409)

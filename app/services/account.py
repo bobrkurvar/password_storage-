@@ -3,7 +3,7 @@ import logging
 from app.domain.account import Account, Param
 from app.services.UoW import UnitOfWork
 
-from .security import encrypt_account_content, decrypt_account_content
+from app.infra.security import encrypt_account_content, decrypt_account_content
 from .users import get_user_derive_key
 
 log = logging.getLogger(__name__)

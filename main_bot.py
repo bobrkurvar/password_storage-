@@ -24,8 +24,7 @@ async def init_all():
     redis_client = get_redis_client()
     redis_conn = await redis_client.init_redis()
     try:
-        rmq_client = None
-        setup_logging("bot", rmq_client)
+        setup_logging()
         redis_service = get_redis_service(prefix="front", redis_conn=redis_conn)
         if redis_conn:
             redis_service.init_conn(redis_conn)

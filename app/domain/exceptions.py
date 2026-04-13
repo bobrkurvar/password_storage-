@@ -80,6 +80,12 @@ class CredentialsValidateError(UnauthorizedError):
         super().__init__(self.detail)
 
 
+
+class AccessError(Exception):
+    def __init__(self):
+        super().__init__("Не достаточно прав")
+
+
 class ManyAuthRequestsError(Exception):
     # Исключение для auth rate limiter
     def __init__(self, count: int, delay: int):

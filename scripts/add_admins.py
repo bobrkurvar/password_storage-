@@ -12,7 +12,7 @@ _ADMINS = [1295347345]
 async def add_admins():
     for admin in _ADMINS:
         try:
-            manager.connect()
+            await manager.connect()
             await manager.create(Admin, id=admin)
         except AlreadyExistsError:
             log.debug("admins %s already exists", admin)

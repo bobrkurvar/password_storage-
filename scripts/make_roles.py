@@ -11,7 +11,7 @@ _ROLES = ["admin", "user"]
 
 
 async def add_roles():
-    manager.connect()
+    await manager.connect()
     for role in _ROLES:
         try:
             await manager.create(Role, role_name=role)

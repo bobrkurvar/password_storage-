@@ -18,10 +18,9 @@ setup_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    rmq_client = None
-    setup_logging("app", rmq_client)
+    setup_logging()
     manager = get_db_manager()
-    manager.connect()
+    await manager.connect()
     redis_client = get_redis_client()
     redis_conn = await redis_client.init_redis()
     redis_service = get_redis_service(prefix="api", redis_conn=redis_conn)
