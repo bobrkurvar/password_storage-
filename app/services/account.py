@@ -1,7 +1,6 @@
 import logging
 
-from app.domain.account import Account, Param
-from app.services.UoW import UnitOfWork
+from app.dto.account import CreateAccountDto, CreateAccountDto
 
 from app.infra.security import encrypt_account_content, decrypt_account_content
 from .users import get_dek_from_redis_or_password
@@ -10,51 +9,34 @@ log = logging.getLogger(__name__)
 
 
 async def create_account(
-    manager,
+    uow,
     redis_service,
-    name: str,
+    account: CreateAccountDto,
     user_id: int,
-    password: str,
-    params: list,
     user_password: str | None = None,
-    uow_class=UnitOfWork
 ):
     dek = await get_dek_from_redis_or_password(
-        redis_service, manager, user_id, user_password
+        redis_service, uow, user_id, user_password
     )
     if dek:
-        async with uow_class(manager._session_factory) as uow:
-            password = encrypt_account_content(password, dek)
-            account = await manager.create(
-                Account,
-                name=name,
-                user_id=user_id,
-                password=password,
-                session=uow.session,
-            )
-            log.debug("ACCOUNT ID: %s", account["id"])
-            for param in params:
-                if param["secret"]:
-                    param["content"] = encrypt_account_content(
-                        param["content"], dek
-                    )
-                param.update(account_id=account["id"])
-                await manager.create(Param, session=uow.session, **param)
-
-            return account, params
+        for key, value in account.secret_data.items():
+            account.secret_data[key] = encrypt_account_content(value, dek)
+        async with uow:
+            return await uow.db.create(account)
 
 
-async def read_accounts(manager, redis_service, user_id: int, **filters):
+async def read_accounts(uow, redis_service, user_id: int, **filters):
     dek = await get_dek_from_redis_or_password(
-        redis_service, manager, user_id
+        redis_service, uow, user_id
     )
     if dek:
-        accounts = await manager.read(
-            Account,
-            user_id=user_id,
-            to_join = ["params"],
-            **filters
-        )
+        async with uow:
+            accounts = await uow.db.read(
+                Account,
+                user_id=user_id,
+                to_join = ["params"],
+                **filters
+            )
         for account in accounts:
             account["password"] = decrypt_account_content(account["password"], dek)
             for param in account["params"]:

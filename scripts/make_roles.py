@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from app.adapters.crud import get_db_manager
+from app.adapters.generic_repo import get_db_manager
 from app.domain import AlreadyExistsError, Role
 
 log = logging.getLogger(__name__)

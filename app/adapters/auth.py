@@ -5,9 +5,9 @@ import jwt
 from fastapi import Depends
 from fastapi.security.oauth2 import OAuth2PasswordBearer
 
-from app.adapters.crud import Crud, get_db_manager
-from app.domain.exceptions import (AccessTokenExpireError,
-                                   InvalidAccessTokenError)
+from app.adapters.generic_repo import Crud, get_db_manager
+from app.services.exceptions import (AccessTokenExpireError,
+                                     InvalidAccessTokenError)
 from app.services.tokens import user_info_from_token, user_roles
 from app.infra.tokens import TokensManager
 

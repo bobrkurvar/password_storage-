@@ -7,7 +7,6 @@ from core import conf
 
 log = logging.getLogger(__name__)
 
-host = conf.redis_host
 
 
 class RedisClient:
@@ -17,7 +16,7 @@ class RedisClient:
     async def init_redis(self) -> Redis | None:
         if self.redis:
             return self.redis
-        redis = Redis(host=host)
+        redis = Redis(host=conf.redis_host)
         try:
             await redis.ping()
             self.redis = redis
@@ -38,11 +37,13 @@ class RedisClient:
             pass
 
 
-redis_client = RedisClient()
+_redis_client: RedisClient | None = None
 
-
-def get_redis_client():
-    return redis_client
+def get_redis_client() -> RedisClient:
+    global _redis_client
+    if _redis_client is None:
+        _redis_client = RedisClient()
+    return _redis_client
 
 
 class RedisService:
@@ -65,10 +66,6 @@ class RedisService:
             json.dumps(value),
             ex=ttl,
         )
-
-    async def close(self):
-        await self.redis.close()
-        self.redis = None
 
     async def get(self, key: str):
         key = f"{self.prefix}:{key}"
@@ -97,13 +94,5 @@ class RedisService:
         await self.redis.expire(key, ttl)
 
 
-redis_service: RedisService | None = None
 
 
-def get_redis_service(redis_conn=None, prefix: str = ""):
-    global redis_service
-    if redis_service is None:
-        redis_service = RedisService(redis_conn, prefix)
-    # redis_service.init_conn(redis_conn)
-    # redis_service.set_prefix(prefix)
-    return redis_service

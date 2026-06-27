@@ -1,19 +1,23 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from app.adapters.crud import Crud, get_db_manager
 from app.endpoints.schemas.user import UserForRegistration
 from app.services.users import user_registration
-from shared.adapters.redis import RedisService, get_redis_service
+from app.services.account import create_account
+from app.adapters.deps import UowDep, RedisDep
 
-router = APIRouter(prefix="/user", tags=["own"])
+router = APIRouter(prefix="/user")
 log = logging.getLogger(__name__)
-dbManagerDep = Annotated[Crud, Depends(get_db_manager)]
-redisServiceDep = Annotated[RedisService, Depends(get_redis_service)]
+
 
 
 @router.post("")
-async def registration(manager: dbManagerDep, user: UserForRegistration):
-    return await user_registration(manager, user.user_id, user.password, user.username)
+async def registration(uow: UowDep, user: UserForRegistration):
+    return await user_registration(uow, user.user_id, user.password, user.username)
+
+
+@router.post("/accounts")
+async def user_create_account(user, uow: UowDep, redis: RedisDep, account):
+    return await create_account(uow=uow, redis_service=redis, account=account)

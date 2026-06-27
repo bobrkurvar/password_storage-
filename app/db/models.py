@@ -1,7 +1,8 @@
-from sqlalchemy import ForeignKey, inspect
+from sqlalchemy import ForeignKey
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import BigInteger, String
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -16,29 +17,6 @@ class User(Base):
     salt: Mapped[str]
     encrypted_dek: Mapped[str]
     accounts: Mapped[list["Account"]] = relationship("Account", back_populates="user")
-    # actions: Mapped[list["UsersActions"]] = relationship(
-    #     "UsersActions", back_populates="user"
-    # )
-    roles: Mapped[list["UserRole"]] = relationship("UserRole", back_populates="user")
-
-    def __repr__(self):
-        text = f"id: {self.id}, username: {self.username}"
-        return text
-
-    def model_dump(self):
-        insp = inspect(self)
-        return {
-            "id": self.id,
-            "username": self.username,
-            "salt": self.salt,
-            "encrypted_dek": self.encrypted_dek,
-            "password": self.password,
-            "roles_names": (
-                None
-                if "roles" in insp.unloaded
-                else [role.model_dump()["role_name"] for role in self.roles]
-            ),
-        }
 
 
 class Account(Base):
@@ -49,56 +27,35 @@ class Account(Base):
     )
     password: Mapped[str] = mapped_column(nullable=False)
     name: Mapped[str] = mapped_column(nullable=False)
+    public_data: Mapped[dict] = mapped_column(JSONB)
+    secret_data: Mapped[dict] = mapped_column(JSONB)
     user: Mapped["User"] = relationship("User", back_populates="accounts")
-    params: Mapped[list["Param"]] = relationship(
-        "Param",
-        back_populates="account",
-        cascade="all, delete, delete-orphan",
-        passive_deletes=True,
-    )
-
-    def __repr__(self):
-        text = f"id: {self.id}, {self.user_id}"
-        return text
-
-    def model_dump(self):
-        insp = inspect(self)
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "name": self.name,
-            "password": self.password,
-            "params": (
-                None
-                if "params" in insp.unloaded
-                else tuple(param.model_dump() for param in self.params)
-            ),
-        }
 
 
-class Param(Base):
-    __tablename__ = "params"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    account_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("accounts.id", ondelete="CASCADE"), index=True
-    )
-    account: Mapped["Account"] = relationship("Account", back_populates="params")
-    name: Mapped[str] = mapped_column(nullable=False)
-    secret: Mapped[bool] = mapped_column(default=False)
-    content: Mapped[str] = mapped_column(nullable=False)
 
-    def __repr__(self):
-        text = f"id: {self.id}, name: {self.name}, content: {self.content}"
-        return text
-
-    def model_dump(self):
-        return {
-            "id": self.id,
-            "account_id": self.account_id,
-            "secret": self.secret,
-            "name": self.name,
-            "content": self.content,
-        }
+# class Param(Base):
+#     __tablename__ = "params"
+#     id: Mapped[int] = mapped_column(primary_key=True)
+#     account_id: Mapped[int] = mapped_column(
+#         BigInteger, ForeignKey("accounts.id", ondelete="CASCADE"), index=True
+#     )
+#     account: Mapped["Account"] = relationship("Account", back_populates="params")
+#     name: Mapped[str] = mapped_column(nullable=False)
+#     secret: Mapped[bool] = mapped_column(default=False)
+#     content: Mapped[str] = mapped_column(nullable=False)
+#
+#     def __repr__(self):
+#         text = f"id: {self.id}, name: {self.name}, content: {self.content}"
+#         return text
+#
+#     def model_dump(self):
+#         return {
+#             "id": self.id,
+#             "account_id": self.account_id,
+#             "secret": self.secret,
+#             "name": self.name,
+#             "content": self.content,
+#         }
 
 
 # class Actions(Base):
@@ -126,16 +83,16 @@ class Param(Base):
 #     user: Mapped["Users"] = relationship("Users", back_populates="actions")
 
 
-class Role(Base):
-    __tablename__ = "roles"
-    role_name: Mapped[str] = mapped_column(primary_key=True)
-    # role_permissions: Mapped[list["RolesPermissions"]] = relationship(
-    #     "RolesPermissions", back_populates="roles"
-    # )
-    users: Mapped[list["UserRole"]] = relationship("UserRole", back_populates="role")
-
-    def model_dump(self):
-        return {"role_name": self.role_name}
+# class Role(Base):
+#     __tablename__ = "roles"
+#     role_name: Mapped[str] = mapped_column(primary_key=True)
+#     # role_permissions: Mapped[list["RolesPermissions"]] = relationship(
+#     #     "RolesPermissions", back_populates="roles"
+#     # )
+#     users: Mapped[list["UserRole"]] = relationship("UserRole", back_populates="role")
+#
+#     def model_dump(self):
+#         return {"role_name": self.role_name}
 
 
 # class RolesPermissions(Base):
@@ -150,22 +107,22 @@ class Role(Base):
 #     )
 
 
-class UserRole(Base):
-    __tablename__ = "users_roles"
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
-    role_name: Mapped[int] = mapped_column(
-        ForeignKey("roles.role_name"), primary_key=True
-    )
-    user: Mapped["User"] = relationship("User", back_populates="roles")
-    role: Mapped["Role"] = relationship("Role", back_populates="users")
-
-    def model_dump(self):
-        return {"user_id": self.user_id, "role_name": self.role_name}
-
-
-class Admin(Base):
-    __tablename__ = "admins"
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-
-    def model_dump(self):
-        return {"id": self.id}
+# class UserRole(Base):
+#     __tablename__ = "users_roles"
+#     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+#     role_name: Mapped[int] = mapped_column(
+#         ForeignKey("roles.role_name"), primary_key=True
+#     )
+#     user: Mapped["User"] = relationship("User", back_populates="roles")
+#     role: Mapped["Role"] = relationship("Role", back_populates="users")
+#
+#     def model_dump(self):
+#         return {"user_id": self.user_id, "role_name": self.role_name}
+#
+#
+# class Admin(Base):
+#     __tablename__ = "admins"
+#     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+#
+#     def model_dump(self):
+#         return {"id": self.id}

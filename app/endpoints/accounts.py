@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.adapters.auth import get_user_from_token, getUserFromTokenDep
-from app.adapters.crud import Crud, get_db_manager
+from app.adapters.generic_repo import Crud, get_db_manager
 from app.endpoints.schemas.account import AccountInput, AccountSearch
 from app.services.account import create_account, read_accounts
 from shared.adapters.redis import RedisService, get_redis_service

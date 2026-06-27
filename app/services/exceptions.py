@@ -18,6 +18,16 @@ class NotFoundError(RepositoryError):
             super().__init__(f"{entity_name} not found")
 
 
+
+class InvalidReferenceError(RepositoryError):
+    """Ошибка внешнего ключа"""
+
+    def __init__(self, model_name: str, detail: str):
+        self.model_name = model_name
+        self.detail = detail
+        super().__init__(f"Foreign key violation in {model_name}: {detail}")
+
+
 class AlreadyExistsError(RepositoryError):
     """Запись с таким атрибутом уже существует в базе"""
 

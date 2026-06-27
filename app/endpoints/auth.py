@@ -3,8 +3,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Body
 
-from app.adapters.crud import Crud, get_db_manager
-from app.domain.exceptions import NotFoundError, UnauthorizedError, CredentialsValidateError, ManyAuthRequestsError
+from app.adapters.generic_repo import Crud, get_db_manager
+from app.services.exceptions import NotFoundError, UnauthorizedError, CredentialsValidateError, ManyAuthRequestsError
 from app.endpoints.schemas.user import UserForRegistration, UserForToken
 from app.services.tokens import get_access_token_from_refresh, get_access_token_from_login
 from app.services.users import user_registration

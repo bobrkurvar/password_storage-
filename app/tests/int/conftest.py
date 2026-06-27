@@ -5,7 +5,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import text
 
-from app.adapters.crud import get_db_manager
+from app.adapters.generic_repo import get_db_manager
 from core import conf
 
 

@@ -12,7 +12,7 @@ from bot.handlers import main_router
 from bot.http_client import ext_api_manager
 from core import conf
 from core.logger import setup_logging
-from shared.adapters.redis import get_redis_client, get_redis_service
+from shared.adapters.redis import get_redis_client, RedisService
 
 bot = Bot(conf.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 log = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ async def init_all():
     redis_conn = await redis_client.init_redis()
     try:
         setup_logging()
-        redis_service = get_redis_service(prefix="front", redis_conn=redis_conn)
+        redis_service = RedisService(prefix="front", redis=redis_conn)
         if redis_conn:
             redis_service.init_conn(redis_conn)
             storage = RedisStorage(redis=redis_conn, state_ttl=3600)
