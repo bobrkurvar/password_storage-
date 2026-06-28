@@ -4,44 +4,57 @@ from bot.services import AuthStage
 from bot.services.exceptions import (AuthError, UnauthorizedError,
                                      UnlockStorageError)
 from bot.texts import phrases
+from enum import StrEnum
 
 log = logging.getLogger(__name__)
 
 
-async def ensure_auth(
-    ext_api_manager,
-    redis_service,
-    user_id: int,
-    password: str | None = None,
-):
-    try:
-        access_key = f"{user_id}:access_token"
-        token = await redis_service.get(access_key)
-        if token is None:
-            token = await ext_api_manager.auth(user_id, password)
-            await redis_service.set(
-                access_key,
-                token,
-                ttl = 900
-            )
-        log.debug("token: %s", token)
-        return token, AuthStage.OK
-    except UnauthorizedError as exc:
-        if exc.registration:
-            raise AuthError(AuthStage.NEED_REGISTRATION)
-        else:
-            raise AuthError(
-                AuthStage.NEED_PASSWORD
-                if password is None
-                else AuthStage.WRONG_PASSWORD
-            )
+# async def ensure_auth(
+#     ext_api_manager,
+#     redis_service,
+#     user_id: int,
+#     password: str | None = None,
+# ):
+#     try:
+#         access_key = f"{user_id}:access_token"
+#         token = await redis_service.get(access_key)
+#         if token is None:
+#             token = await ext_api_manager.auth(user_id, password)
+#             await redis_service.set(
+#                 access_key,
+#                 token,
+#                 ttl = 900
+#             )
+#         log.debug("token: %s", token)
+#         return token, AuthStage.OK
+#     except UnauthorizedError as exc:
+#         if exc.registration:
+#             raise AuthError(AuthStage.NEED_REGISTRATION)
+#         else:
+#             raise AuthError(
+#                 AuthStage.NEED_PASSWORD
+#                 if password is None
+#                 else AuthStage.WRONG_PASSWORD
+#             )
+class VaultAccessState(StrEnum):
+    READY = "ready"
+    NEED_REGISTRATION = "need_registration"
+    NEED_UNLOCK = "need_unlock"
 
+
+async def get_vault_access_state(
+    ext_api_manager,
+    telegram_user_id: int,
+) -> VaultAccessState:
+    return await ext_api_manager.get_vault_access_state(
+        user_id=telegram_user_id,
+    )
 
 async def action_with_unlock_storage(
-        action,
-        access_token: str | None = None,
-        http_client = None,
-        password: str | None = None,
+    action,
+    access_token: str | None = None,
+    http_client = None,
+    password: str | None = None,
 ):
     if password is not None and http_client is not None:
         try:

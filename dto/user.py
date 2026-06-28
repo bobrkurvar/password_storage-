@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 from typing import Any
 
-# Для передачи данных в сервис
 @dataclass(frozen=True, slots=True)
-class CreateUserInput:
-    username: str
-    password: str
+class UserForStorage:
+    id: int
+    dek: bytes
 
 
 @dataclass(frozen=True, slots=True)

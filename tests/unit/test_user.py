@@ -1,6 +1,6 @@
 import pytest
-from app.services.users import user_registration, get_user_derive_key
-from app.tests.fakes import FakeUoW
+from services import user_registration
+from tests.fakes import FakeUoW
 
 @pytest.mark.asyncio
 async def tests_user_registration_success(manager):

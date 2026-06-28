@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.exc import StaleDataError
 
-from app.services import AlreadyExistsError, InvalidReferenceError, NotFoundError, Operations
+from services import AlreadyExistsError, InvalidReferenceError, NotFoundError, Operations
 
 log = logging.getLogger(__name__)
 
@@ -37,7 +37,6 @@ async def handle_integrity_errors():
 
 class GenericRepository:
     def __init__(self, session, registry):
-        # self._session_factory = session_factory
         self._registry = registry
         self.session = session
 

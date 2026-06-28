@@ -4,15 +4,15 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Body
 
 from app.adapters.generic_repo import Crud, get_db_manager
-from app.services.exceptions import NotFoundError, UnauthorizedError, CredentialsValidateError, ManyAuthRequestsError
-from app.endpoints.schemas.user import UserForRegistration, UserForToken
-from app.services.tokens import get_access_token_from_refresh, get_access_token_from_login
-from app.services.users import user_registration
+from services.exceptions import NotFoundError, UnauthorizedError, CredentialsValidateError, ManyAuthRequestsError
+from api.schemas.user import UserForRegistration, UserForToken
+from services import get_access_token_from_refresh, get_access_token_from_login
+from services.users import user_registration
 from shared.adapters.redis import RedisService, get_redis_service
 from app.adapters.auth import getUserFromTokenDep
-from app.services.users import get_user_derive_key, login_attempts
+from services.users import get_user_derive_key, login_attempts
 from fastapi_limiter.depends import RateLimiter
-from app.infra.tokens import TokensManager
+from infra.tokens import TokensManager
 
 router = APIRouter(prefix="/auth", tags=["own"])
 log = logging.getLogger(__name__)

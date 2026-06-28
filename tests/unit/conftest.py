@@ -2,9 +2,9 @@ import logging
 
 import pytest
 
-from app.infra.tokens import TokensManager
+from infra import TokensManager
 from core.logger import setup_logging
-from app.tests.fakes import FakeCRUD, FakeRedis
+from tests.fakes import FakeCRUD, FakeRedis
 
 setup_logging()
 log = logging.getLogger(__name__)

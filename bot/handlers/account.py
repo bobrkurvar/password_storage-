@@ -11,8 +11,7 @@ from aiogram.types import CallbackQuery, Message, InlineQuery, InlineQueryResult
 from bot.dialog.callback import CallbackFactory
 from bot.dialog.states import InputAccount
 from bot.http_client import MyExternalApiForBot
-from bot.services.auth import (action_with_unlock_storage, ensure_auth,
-                               match_status_and_interface)
+from bot.services.auth import (action_with_unlock_storage, match_status_and_interface)
 from bot.services.exceptions import AuthError
 from bot.services.messages import delete_msg_if_exists, delayed_search, USER_PENDING_TASKS
 from bot.texts import phrases

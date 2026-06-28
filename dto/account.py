@@ -17,3 +17,10 @@ class ReadAccountDto:
     name: str
     public_data: dict[str, Any]
     secret_data: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class AccountDto:
+    id: int
+    user_id: int
+    data: dict[str, Any]

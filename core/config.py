@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     algorithm: str
     queue_host: str
     pepper: str
+    internal_api_key: str
 
 
     @property

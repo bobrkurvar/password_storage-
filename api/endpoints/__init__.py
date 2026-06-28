@@ -1,8 +1,8 @@
 from fastapi import APIRouter, status
 
-from app.endpoints.schemas.errors import ErrorResponse
+from api.schemas.errors import ErrorResponse
 
-from . import accounts, accounts_manage, users, users_manage, auth
+from . import accounts, accounts_manage, user, users_manage, auth
 
 main_router = APIRouter(
     responses={

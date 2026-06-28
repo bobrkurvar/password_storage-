@@ -1,7 +1,7 @@
 import pytest
-from app.infra.security import encrypt_account_content, decrypt_account_content
-from app.services.users import derive_master_key, user_registration
-from app.tests.fakes import FakeUoW
+from infra import encrypt_account_content, decrypt_account_content
+from services import derive_master_key, user_registration
+from tests.fakes import FakeUoW
 import logging
 
 log = logging.getLogger(__name__)

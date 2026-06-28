@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta, timezone
 import jwt
-from app.services.exceptions import InvalidRefreshTokenError, RefreshTokenExpireError
+from services.exceptions import InvalidRefreshTokenError, RefreshTokenExpireError
 from core import conf
 
 log = logging.getLogger(__name__)

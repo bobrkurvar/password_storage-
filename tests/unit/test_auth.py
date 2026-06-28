@@ -4,10 +4,10 @@ import pytest
 
 from app.domain import (CredentialsValidateError, RefreshTokenExpireError,
                         NotFoundError, User)
-from app.services.tokens import get_access_token_from_refresh, get_access_token_from_login
-from app.services.users import get_password_hash
+from services import get_access_token_from_refresh, get_access_token_from_login
+from services import get_password_hash
 
-from app.tests.unit.helpers import get_tokens
+from tests.unit.helpers import get_tokens
 
 log = logging.getLogger(__name__)
 

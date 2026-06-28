@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, status
 from app.adapters.auth import make_role_checker
 from app.adapters.generic_repo import Crud, get_db_manager
 from app.domain import Account
-from app.endpoints.schemas.account import AccountOutput
-from app.endpoints.schemas.errors import ErrorResponse
+from api.schemas.account import AccountOutput
+from api.schemas.errors import ErrorResponse
 
 router = APIRouter(
     prefix="/account",

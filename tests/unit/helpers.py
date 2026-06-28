@@ -1,6 +1,6 @@
 import jwt
 
-from app.infra.tokens import TokensManager
+from infra import TokensManager
 from core import conf
 
 

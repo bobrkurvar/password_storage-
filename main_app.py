@@ -6,9 +6,9 @@ from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 
 from app.adapters.generic_repo import get_db_manager
-from app.endpoints import main_router
+from api.endpoints import main_router
 from core.logger import setup_logging
-from shared.adapters.redis import get_redis_client, RedisService
+from shared.adapters.redis import get_redis_client
 
 dep = []
 
